@@ -16,7 +16,7 @@ The Computer-Aided Travel Survey (CATS) provides an interactive, modern interfac
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd computer-aided-traval-survey
+   cd computer-aided-travel-survey
    ```
 
 2. **Set up a virtual environment:**
