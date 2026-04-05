@@ -5,6 +5,7 @@ import folium
 import plotly.express as px
 import pydeck as pdk
 import uuid
+import json
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
@@ -20,6 +21,7 @@ st.set_page_config(
 # Constants
 CSV_FILE = "survey_responses.csv"
 DEFAULT_LOCATION = [48.8566, 2.3522]  # Paris
+ADMIN_PASSWORD = "city_planning_2026"  # In a real app, use secrets or env vars
 
 # Initialize Geocoder
 geolocator = Nominatim(user_agent="cats_travel_survey_app")
@@ -27,6 +29,9 @@ geolocator = Nominatim(user_agent="cats_travel_survey_app")
 # Initialize Session State
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'landing'
+
+if 'is_admin_authenticated' not in st.session_state:
+    st.session_state.is_admin_authenticated = False
 
 if 'session_id' not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -129,17 +134,73 @@ def load_data():
         return df
     return pd.DataFrame(columns=expected_columns)
 
+def convert_to_geojson(df):
+    """Converts the DataFrame to a GeoJSON FeatureCollection (LineStrings)."""
+    features = []
+    for _, row in df.iterrows():
+        if pd.notna(row['origin_lat']) and pd.notna(row['dest_lat']):
+            feature = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [float(row['origin_lon']), float(row['origin_lat'])],
+                        [float(row['dest_lon']), float(row['dest_lat'])]
+                    ]
+                },
+                "properties": {
+                    "mode": row['mode'],
+                    "purpose": row['purpose'],
+                    "distance_km": row['distance_km'],
+                    "age_group": row['age_group'],
+                    "timestamp": row['submission_timestamp']
+                }
+            }
+            features.append(feature)
+    
+    return json.dumps({"type": "FeatureCollection", "features": features}, indent=2)
+
 # --- Navigation (Sidebar) ---
 with st.sidebar:
-    st.title("🏙️ CATS Admin")
+    st.title("🏙️ CATS Menu")
     app_mode = st.radio("Choose Section:", ["Respondent (Survey)", "Admin (Dashboard)"])
+    
     if app_mode == "Respondent (Survey)":
         if st.session_state.current_page == 'admin_dashboard':
             navigate_to('landing')
     else:
-        navigate_to('admin_dashboard')
+        # Check authentication for Admin mode
+        if not st.session_state.is_admin_authenticated:
+            navigate_to('admin_login')
+        else:
+            navigate_to('admin_dashboard')
+            if st.button("🔓 Logout Admin"):
+                st.session_state.is_admin_authenticated = False
+                navigate_to('landing')
+                st.rerun()
 
 # --- Pages ---
+
+def show_admin_login():
+    st.title("🔒 Admin Access")
+    st.write("Please enter the administrative password to access the dashboard.")
+    
+    with st.form("login_form"):
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Log In")
+        
+        if submitted:
+            if password == ADMIN_PASSWORD:
+                st.session_state.is_admin_authenticated = True
+                st.success("Authenticated successfully!")
+                navigate_to('admin_dashboard')
+                st.rerun()
+            else:
+                st.error("Incorrect password.")
+    
+    if st.button("Back to Survey"):
+        navigate_to('landing')
+        st.rerun()
 
 def show_landing_page():
     st.title("🏙️ Welcome to the City Travel Survey")
@@ -470,6 +531,29 @@ def show_admin_dashboard():
     st.subheader("📄 Raw Data")
     st.dataframe(df)
 
+    # --- Data Export ---
+    st.subheader("📥 Export Data")
+    col_ex1, col_ex2 = st.columns(2)
+    
+    with col_ex1:
+        st.write("#### Download CSV")
+        st.download_button(
+            label="Download CSV Responses",
+            data=df.to_csv(index=False).encode('utf-8'),
+            file_name=f"cats_survey_data_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime='text/csv',
+        )
+    
+    with col_ex2:
+        st.write("#### Export to GeoJSON (GIS)")
+        geojson_data = convert_to_geojson(df)
+        st.download_button(
+            label="Download GeoJSON Flows",
+            data=geojson_data,
+            file_name=f"cats_survey_flows_{datetime.now().strftime('%Y%m%d')}.geojson",
+            mime='application/json',
+        )
+
 # --- Page Router ---
 if st.session_state.current_page == 'landing':
     show_landing_page()
@@ -481,5 +565,11 @@ elif st.session_state.current_page == 'trip_form':
     show_trip_form()
 elif st.session_state.current_page == 'success_page':
     show_success_page()
+elif st.session_state.current_page == 'admin_login':
+    show_admin_login()
 elif st.session_state.current_page == 'admin_dashboard':
-    show_admin_dashboard()
+    if st.session_state.is_admin_authenticated:
+        show_admin_dashboard()
+    else:
+        navigate_to('admin_login')
+        st.rerun()
