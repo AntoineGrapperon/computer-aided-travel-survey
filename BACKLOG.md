@@ -12,7 +12,7 @@ This backlog outlines the planned features and improvements for the CATS applica
 ## 🛠️ Phase 2: Enhanced Data Collection & UI
 - [x] **Multi-trip Entries:** Ability for a user to log all trips taken within a single 24-hour period.
 - [x] **Demographic Information:** Optional section for age, gender, occupation, and household characteristics.
-- [ ] **Mobile Optimization:** Refining the UI/UX for use on smartphones.
+- [x] **Mobile Optimization:** Refining the UI/UX for use on smartphones.
 - [x] **Auto-Geocoding:** Converting typed addresses to latitude/longitude coordinates automatically.
 - [x] **Advanced Validation:** Highlighting unrealistic speeds (e.g., walking 100km/h) or overlapping trips.
 
@@ -24,7 +24,7 @@ This backlog outlines the planned features and improvements for the CATS applica
 - [x] **Data Export:** Secure download of anonymized survey data in CSV, GeoJSON, and XLSX formats.
 
 ## 🌟 Phase 4: Advanced Features & Refinement
-- [ ] **Multilingual Support:** Localizing the interface for diverse city populations.
+- [x] **Multilingual Support (EN/FR):** Localizing the interface for diverse city populations.
 - [x] **Authentication:** Login systems for repeat respondents or authorized city officials.
 - [ ] **Automated Routing:** Integration with OpenStreetMap (OSM) to estimate the most likely routes taken.
 - [ ] **Public Transport Integration:** Linking reported transit trips with GTFS data for more granular analysis.
