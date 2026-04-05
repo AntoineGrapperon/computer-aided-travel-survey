@@ -21,11 +21,11 @@ This backlog outlines the planned features and improvements for the CATS applica
 - [x] **Origin-Destination (O-D) Flows (Visual):** Tables and maps showing travel flows between different city zones.
 - [x] **Modal Split Visualization:** Pie charts and bar graphs detailing the share of each transport mode.
 - [x] **Heatmaps:** Visualizing popular travel corridors and time-of-day peaks.
-- [ ] **Data Export:** Secure download of anonymized survey data in CSV, GeoJSON, and XLSX formats.
+- [x] **Data Export:** Secure download of anonymized survey data in CSV, GeoJSON, and XLSX formats.
 
 ## 🌟 Phase 4: Advanced Features & Refinement
 - [ ] **Multilingual Support:** Localizing the interface for diverse city populations.
-- [ ] **Authentication:** Login systems for repeat respondents or authorized city officials.
+- [x] **Authentication:** Login systems for repeat respondents or authorized city officials.
 - [ ] **Automated Routing:** Integration with OpenStreetMap (OSM) to estimate the most likely routes taken.
 - [ ] **Public Transport Integration:** Linking reported transit trips with GTFS data for more granular analysis.
 - [ ] **Offline Support:** Ability to cache survey entries when data connection is unavailable.
