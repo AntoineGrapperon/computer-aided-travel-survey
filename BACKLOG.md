@@ -26,6 +26,6 @@ This backlog outlines the planned features and improvements for the CATS applica
 ## 🌟 Phase 4: Advanced Features & Refinement
 - [x] **Multilingual Support (EN/FR):** Localizing the interface for diverse city populations.
 - [x] **Authentication:** Login systems for repeat respondents or authorized city officials.
-- [ ] **Automated Routing:** Integration with OpenStreetMap (OSM) to estimate the most likely routes taken.
+- [x] **Automated Routing:** Integration with OpenStreetMap (OSM) to estimate the most likely routes taken.
 - [ ] **Public Transport Integration:** Linking reported transit trips with GTFS data for more granular analysis.
 - [ ] **Offline Support:** Ability to cache survey entries when data connection is unavailable.
