@@ -5,3 +5,5 @@ streamlit-folium
 plotly
 pydeck
 geopy
+requests
+polyline

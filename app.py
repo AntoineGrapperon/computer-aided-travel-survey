@@ -6,6 +6,8 @@ import plotly.express as px
 import pydeck as pdk
 import uuid
 import json
+import requests
+import polyline
 from geopy.distance import geodesic
 from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
@@ -209,6 +211,31 @@ def geocode_address(address):
         st.error(f"Geocoding error: {e}")
     return None
 
+def get_osrm_route(origin, dest, mode):
+    """Fetches route from OSRM public API."""
+    # Map travel mode to OSRM profile
+    profile = "car"
+    if mode == "Walk": profile = "foot"
+    elif mode == "Bicycle": profile = "cycling"
+    
+    # OSRM expects [lon, lat]
+    url = f"http://router.project-osrm.org/route/v1/{profile}/{origin[1]},{origin[0]};{dest[1]},{dest[0]}?overview=full&geometries=polyline"
+    
+    try:
+        r = requests.get(url)
+        data = r.json()
+        if data.get("code") == "Ok":
+            route = data["routes"][0]
+            geometry = route["geometry"]
+            distance_m = route["distance"]
+            # Decode polyline to list of [lat, lon]
+            coords = polyline.decode(geometry)
+            return coords, round(distance_m / 1000.0, 2), geometry
+    except Exception as e:
+        st.warning(f"Routing error: {e}")
+    
+    return None, None, None
+
 def calculate_trip_stats(origin_lat, origin_lon, dest_lat, dest_lon, departure_time_str, arrival_time_str):
     """Calculates distance in km and average speed in km/h."""
     dist_km = geodesic((origin_lat, origin_lon), (dest_lat, dest_lon)).kilometers
@@ -270,7 +297,7 @@ def load_data():
         'origin_name', 'origin_lat', 'origin_lon', 
         'dest_name', 'dest_lat', 'dest_lon', 
         'departure_time', 'arrival_time', 'mode', 'purpose',
-        'distance_km', 'speed_kmh',
+        'distance_km', 'speed_kmh', 'route_polyline',
         'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp'
     ]
     if os.path.isfile(CSV_FILE):
@@ -475,6 +502,24 @@ def show_trip_form():
 
     # Use a slightly smaller map for mobile compatibility
     m = folium.Map(location=DEFAULT_LOCATION, zoom_start=12)
+    
+    route_coords = None
+    osrm_dist = None
+    route_poly = None
+    
+    if st.session_state.origin_coord and st.session_state.dest_coord:
+        # Fetch route
+        with st.spinner("Calculating route..."):
+            route_coords, osrm_dist, route_poly = get_osrm_route(
+                st.session_state.origin_coord, 
+                st.session_state.dest_coord, 
+                "Car" # Default for map preview or use a session state if available
+            )
+            if route_coords:
+                folium.PolyLine(route_coords, color="blue", weight=5, opacity=0.7).add_to(m)
+                # Zoom to fit route
+                m.fit_bounds([st.session_state.origin_coord, st.session_state.dest_coord])
+
     if st.session_state.origin_coord:
         folium.Marker(st.session_state.origin_coord, popup="Origin", icon=folium.Icon(color='green', icon='play')).add_to(m)
     if st.session_state.dest_coord:
@@ -534,11 +579,27 @@ def show_trip_form():
             if is_overlap:
                 st.error(f"❌ Overlap: {overlapping_trip['departure_time']} - {overlapping_trip['arrival_time']}")
             else:
-                dist_km, speed_kmh = calculate_trip_stats(
-                    st.session_state.origin_coord[0], st.session_state.origin_coord[1],
-                    st.session_state.dest_coord[0], st.session_state.dest_coord[1],
-                    dep_str, arr_str
+                # Get final route stats based on selected mode
+                _, final_dist, final_poly = get_osrm_route(
+                    st.session_state.origin_coord, 
+                    st.session_state.dest_coord, 
+                    travel_mode
                 )
+                
+                # Fallback to geodesic if routing fails
+                if final_dist is None:
+                    final_dist, _ = calculate_trip_stats(
+                        st.session_state.origin_coord[0], st.session_state.origin_coord[1],
+                        st.session_state.dest_coord[0], st.session_state.dest_coord[1],
+                        dep_str, arr_str
+                    )
+                
+                # Recalculate speed with final distance
+                fmt = "%H:%M"
+                start = datetime.strptime(dep_str, fmt)
+                end = datetime.strptime(arr_str, fmt)
+                dur_hrs = (end - start).total_seconds() / 3600.0
+                final_speed = round(final_dist / dur_hrs, 1) if dur_hrs > 0 else 0
                 
                 trip_entry = {
                     "origin_name": origin_name,
@@ -551,8 +612,9 @@ def show_trip_form():
                     "arrival_time": arr_str,
                     "mode": travel_mode,
                     "purpose": trip_purpose,
-                    "distance_km": dist_km,
-                    "speed_kmh": speed_kmh
+                    "distance_km": final_dist,
+                    "speed_kmh": final_speed,
+                    "route_polyline": final_poly
                 }
                 st.session_state.trips.append(trip_entry)
                 st.session_state.origin_coord = None
@@ -626,7 +688,24 @@ def show_admin_dashboard():
     dest_df['color'] = '[200, 0, 0, 160]'
     points_df = pd.concat([origin_df, dest_df])
 
+    # Arcs & Paths for Flows
     flow_df = df.dropna(subset=['origin_lat', 'origin_lon', 'dest_lat', 'dest_lon'])
+    
+    # Prepare Path data (decode polylines)
+    paths = []
+    for _, row in flow_df.iterrows():
+        if pd.notna(row['route_polyline']):
+            try:
+                # Decode and swap lat/lon for Pydeck [lon, lat]
+                coords = polyline.decode(row['route_polyline'])
+                path = [[c[1], c[0]] for c in coords]
+                paths.append({
+                    "path": path,
+                    "mode": row['mode'],
+                    "color": [0, 100, 255, 150]
+                })
+            except:
+                pass
 
     st.pydeck_chart(pdk.Deck(
         map_style='mapbox://styles/mapbox/light-v9',
@@ -637,9 +716,18 @@ def show_admin_dashboard():
             pitch=45
         ),
         layers=[
+            # Estimated Paths
+            pdk.Layer(
+                'PathLayer',
+                data=paths,
+                get_path='path',
+                get_color='color',
+                width_min_pixels=3,
+            ),
+            # Arcs (Fallback or for context)
             pdk.Layer(
                 'ArcLayer',
-                data=flow_df,
+                data=flow_df[flow_df['route_polyline'].isna()],
                 get_source_position='[origin_lon, origin_lat]',
                 get_target_position='[dest_lon, dest_lat]',
                 get_source_color='[0, 200, 0, 80]',
