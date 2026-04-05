@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import os
 from datetime import datetime, time
 
 # Set page configuration
@@ -7,6 +9,9 @@ st.set_page_config(
     page_icon="🏙️",
     layout="centered"
 )
+
+# Constants
+CSV_FILE = "survey_responses.csv"
 
 # Initialize Session State
 if 'current_page' not in st.session_state:
@@ -17,6 +22,20 @@ if 'trip_data' not in st.session_state:
 
 def navigate_to(page):
     st.session_state.current_page = page
+
+def save_response(data):
+    """Saves the trip data to a local CSV file."""
+    # Add submission timestamp
+    data['submission_timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Create DataFrame from new entry
+    new_df = pd.DataFrame([data])
+    
+    # Append to file or create new with header
+    if not os.path.isfile(CSV_FILE):
+        new_df.to_csv(CSV_FILE, index=False)
+    else:
+        new_df.to_csv(CSV_FILE, mode='a', header=False, index=False)
 
 # --- Pages ---
 
@@ -43,6 +62,13 @@ def show_trip_form():
     st.write("Please provide details for one of your recent trips.")
 
     with st.form("trip_form"):
+        # Origin and Destination
+        col_orig, col_dest = st.columns(2)
+        with col_orig:
+            origin = st.text_input("Origin", placeholder="e.g., Home, Work, 123 Main St")
+        with col_dest:
+            destination = st.text_input("Destination", placeholder="e.g., Grocery Store, Park")
+
         # Time Inputs
         col1, col2 = st.columns(2)
         with col1:
@@ -58,23 +84,32 @@ def show_trip_form():
         trip_purpose = st.selectbox("What was the purpose of this trip?", options=purpose_options)
 
         # Submit Button
-        submitted = st.form_submit_state = st.form_submit_button("Submit Response", type="primary")
+        submitted = st.form_submit_button("Submit Response", type="primary")
 
     if submitted:
         # Validation Logic
-        # Note: streamlit time_input returns datetime.time objects
-        if arrival_time <= departure_time:
+        if not origin or not destination:
+            st.error("❌ Please provide both an Origin and a Destination.")
+        elif arrival_time <= departure_time:
             st.error("❌ Arrival time must be after the departure time. Please check your inputs.")
         else:
-            # Store data in session state (for now)
+            # Prepare data
             st.session_state.trip_data = {
+                "origin": origin,
+                "destination": destination,
                 "departure_time": departure_time.strftime("%H:%M"),
                 "arrival_time": arrival_time.strftime("%H:%M"),
                 "mode": travel_mode,
                 "purpose": trip_purpose
             }
-            navigate_to('success_page')
-            st.rerun()
+            
+            # Save to CSV
+            try:
+                save_response(st.session_state.trip_data)
+                navigate_to('success_page')
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to save response: {e}")
 
     if st.button("Back to Start"):
         navigate_to('landing')
@@ -83,7 +118,7 @@ def show_trip_form():
 def show_success_page():
     st.balloons()
     st.title("✅ Thank You!")
-    st.success("Your trip response has been recorded successfully.")
+    st.success("Your trip response has been recorded and saved successfully.")
     
     st.write("### Summary of your submission:")
     st.json(st.session_state.trip_data)
