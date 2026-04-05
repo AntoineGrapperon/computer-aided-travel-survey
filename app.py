@@ -6,6 +6,7 @@ import plotly.express as px
 import pydeck as pdk
 import uuid
 from geopy.distance import geodesic
+from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
 from datetime import datetime, time, timedelta
 
@@ -19,6 +20,9 @@ st.set_page_config(
 # Constants
 CSV_FILE = "survey_responses.csv"
 DEFAULT_LOCATION = [48.8566, 2.3522]  # Paris
+
+# Initialize Geocoder
+geolocator = Nominatim(user_agent="cats_travel_survey_app")
 
 # Initialize Session State
 if 'current_page' not in st.session_state:
@@ -41,6 +45,16 @@ if 'dest_coord' not in st.session_state:
 
 def navigate_to(page):
     st.session_state.current_page = page
+
+def geocode_address(address):
+    """Converts a text address to [lat, lon] coordinates."""
+    try:
+        location = geolocator.geocode(address)
+        if location:
+            return [location.latitude, location.longitude]
+    except Exception as e:
+        st.error(f"Geocoding error: {e}")
+    return None
 
 def calculate_trip_stats(origin_lat, origin_lon, dest_lat, dest_lon, departure_time_str, arrival_time_str):
     """Calculates distance in km and average speed in km/h."""
@@ -213,7 +227,38 @@ def show_trip_form():
 
     # --- Mapping Section ---
     st.subheader("1. Where did you go?")
-    selection_mode = st.radio("Select point to place on map:", ["Origin", "Destination"], horizontal=True)
+    
+    # Address Search
+    col_search1, col_search2 = st.columns(2)
+    with col_search1:
+        origin_addr = st.text_input("Search Origin Address", placeholder="e.g., 10 Downing St, London")
+        if st.button("🔍 Find Origin"):
+            if origin_addr:
+                coords = geocode_address(origin_addr)
+                if coords:
+                    st.session_state.origin_coord = coords
+                    st.success(f"Found: {coords}")
+                    st.rerun()
+                else:
+                    st.error("Address not found.")
+            else:
+                st.warning("Please enter an address.")
+
+    with col_search2:
+        dest_addr = st.text_input("Search Destination Address", placeholder="e.g., Eiffel Tower, Paris")
+        if st.button("🔍 Find Destination"):
+            if dest_addr:
+                coords = geocode_address(dest_addr)
+                if coords:
+                    st.session_state.dest_coord = coords
+                    st.success(f"Found: {coords}")
+                    st.rerun()
+                else:
+                    st.error("Address not found.")
+            else:
+                st.warning("Please enter an address.")
+
+    selection_mode = st.radio("Select point to place on map manually:", ["Origin", "Destination"], horizontal=True)
 
     m = folium.Map(location=DEFAULT_LOCATION, zoom_start=12)
     if st.session_state.origin_coord:
@@ -378,17 +423,48 @@ def show_admin_dashboard():
         st.plotly_chart(fig_occ, use_container_width=True)
 
     # --- Mapping ---
-    st.subheader("🗺️ Trip Geography")
+    st.subheader("🗺️ Trip Geography & Flows")
+    
+    # Points for Scatterplot
     origin_df = df[['origin_lat', 'origin_lon']].rename(columns={'origin_lat': 'lat', 'origin_lon': 'lon'})
     origin_df['color'] = '[0, 200, 0, 160]'
     dest_df = df[['dest_lat', 'dest_lon']].rename(columns={'dest_lat': 'lat', 'dest_lon': 'lon'})
     dest_df['color'] = '[200, 0, 0, 160]'
     points_df = pd.concat([origin_df, dest_df])
 
+    # Arcs for Flows
+    # Pydeck ArcLayer expects [start_lon, start_lat, end_lon, end_lat]
+    # Filter out any None coordinates
+    flow_df = df.dropna(subset=['origin_lat', 'origin_lon', 'dest_lat', 'dest_lon'])
+
     st.pydeck_chart(pdk.Deck(
         map_style='mapbox://styles/mapbox/light-v9',
-        initial_view_state=pdk.ViewState(latitude=df['origin_lat'].mean(), longitude=df['origin_lon'].mean(), zoom=11),
-        layers=[pdk.Layer('ScatterplotLayer', data=points_df, get_position='[lon, lat]', get_color='color', get_radius=200)],
+        initial_view_state=pdk.ViewState(
+            latitude=df['origin_lat'].mean() if not df.empty else DEFAULT_LOCATION[0], 
+            longitude=df['origin_lon'].mean() if not df.empty else DEFAULT_LOCATION[1], 
+            zoom=11,
+            pitch=45
+        ),
+        layers=[
+            # Arcs
+            pdk.Layer(
+                'ArcLayer',
+                data=flow_df,
+                get_source_position='[origin_lon, origin_lat]',
+                get_target_position='[dest_lon, dest_lat]',
+                get_source_color='[0, 200, 0, 80]',
+                get_target_color='[200, 0, 0, 80]',
+                get_width=2,
+            ),
+            # Points
+            pdk.Layer(
+                'ScatterplotLayer',
+                data=points_df,
+                get_position='[lon, lat]',
+                get_color='color',
+                get_radius=150,
+            ),
+        ],
     ))
 
     st.subheader("📄 Raw Data")
