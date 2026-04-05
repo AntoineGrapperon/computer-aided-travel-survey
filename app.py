@@ -4,6 +4,7 @@ import os
 import folium
 import plotly.express as px
 import pydeck as pdk
+import uuid
 from streamlit_folium import st_folium
 from datetime import datetime, time
 
@@ -22,8 +23,14 @@ DEFAULT_LOCATION = [48.8566, 2.3522]  # Paris
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'landing'
 
-if 'trip_data' not in st.session_state:
-    st.session_state.trip_data = {}
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
+if 'trips' not in st.session_state:
+    st.session_state.trips = []
+
+if 'demographics' not in st.session_state:
+    st.session_state.demographics = {}
 
 if 'origin_coord' not in st.session_state:
     st.session_state.origin_coord = None
@@ -34,10 +41,19 @@ if 'dest_coord' not in st.session_state:
 def navigate_to(page):
     st.session_state.current_page = page
 
-def save_response(data):
-    """Saves the trip data to a local CSV file."""
-    data['submission_timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_df = pd.DataFrame([data])
+def save_responses(trips, demographics):
+    """Saves multiple trips with demographic data to a local CSV file."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    rows = []
+    for trip in trips:
+        row = trip.copy()
+        row.update(demographics)
+        row['session_id'] = st.session_state.session_id
+        row['submission_timestamp'] = timestamp
+        rows.append(row)
+    
+    new_df = pd.DataFrame(rows)
     
     if not os.path.isfile(CSV_FILE):
         new_df.to_csv(CSV_FILE, index=False)
@@ -72,24 +88,74 @@ def show_landing_page():
     st.title("🏙️ Welcome to the City Travel Survey")
     st.markdown("""
     Thank you for participating in our effort to improve urban mobility. 
-    By sharing your daily travel habits, you help us design better public transit, 
-    safer cycling infrastructure, and more efficient roads.
+    By sharing your daily travel habits, you help us design better infrastructure.
 
     ### How it works:
-    1. Click **Start Survey** below.
-    2. Select your **Origin** and **Destination** on the map.
-    3. Enter trip details (time, mode, purpose).
-    4. Submit your response.
+    1. Tell us a bit about yourself (optional demographics).
+    2. Log all your trips for a single 24-hour period.
+    3. Review and submit your Trip Diary.
 
     *Your data is anonymized and used exclusively for city planning purposes.*
     """)
     
     if st.button("Start Survey", type="primary"):
-        navigate_to('trip_form')
+        navigate_to('demographics_form')
+
+def show_demographics_form():
+    st.title("👤 About You")
+    st.write("This information helps us understand who is traveling and how.")
+    
+    with st.form("demographics_form"):
+        age_group = st.selectbox("Age Group", ["Under 18", "18-24", "25-44", "45-64", "65+"])
+        gender = st.selectbox("Gender", ["Woman", "Man", "Non-binary", "Prefer not to say"])
+        occupation = st.selectbox("Primary Occupation", ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"])
+        
+        submitted = st.form_submit_button("Continue to Trip Diary", type="primary")
+        
+    if submitted:
+        st.session_state.demographics = {
+            "age_group": age_group,
+            "gender": gender,
+            "occupation": occupation
+        }
+        navigate_to('trip_diary')
+        st.rerun()
+
+def show_trip_diary():
+    st.title("📋 Your Trip Diary")
+    st.write("Please log all trips you made yesterday (or on a typical travel day).")
+    
+    if st.session_state.trips:
+        st.subheader("Logged Trips")
+        for i, trip in enumerate(st.session_state.trips):
+            with st.expander(f"Trip {i+1}: {trip['origin_name']} ➔ {trip['destination_name']} ({trip['mode']})"):
+                st.write(f"**From:** {trip['departure_time']} | **To:** {trip['arrival_time']}")
+                st.write(f"**Purpose:** {trip['purpose']}")
+                if st.button(f"Remove Trip {i+1}", key=f"remove_{i}"):
+                    st.session_state.trips.pop(i)
+                    st.rerun()
+    else:
+        st.info("No trips logged yet. Click 'Add a Trip' to begin.")
+        
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("➕ Add a Trip", type="primary"):
+            navigate_to('trip_form')
+            st.rerun()
+            
+    with col2:
+        if st.session_state.trips:
+            if st.button("🏁 Finish and Submit All Trips"):
+                try:
+                    save_responses(st.session_state.trips, st.session_state.demographics)
+                    navigate_to('success_page')
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to save: {e}")
 
 def show_trip_form():
-    st.title("🚆 Record Your Trip")
-    st.write("First, select your travel points on the map, then fill in the details.")
+    st.title("🚆 Record a Trip")
+    st.write("Select your travel points on the map, then fill in the details.")
 
     # --- Mapping Section ---
     st.subheader("1. Where did you go?")
@@ -143,7 +209,7 @@ def show_trip_form():
         purpose_options = ["Work", "Education", "Shopping", "Social/Leisure", "Personal Business", "Other"]
         trip_purpose = st.selectbox("What was the purpose of this trip?", options=purpose_options)
 
-        submitted = st.form_submit_button("Submit Response", type="primary")
+        submitted = st.form_submit_button("Add Trip to Diary", type="primary")
 
     if submitted:
         if not st.session_state.origin_coord or not st.session_state.dest_coord:
@@ -151,7 +217,7 @@ def show_trip_form():
         elif arrival_time <= departure_time:
             st.error("❌ Arrival time must be after the departure time.")
         else:
-            st.session_state.trip_data = {
+            trip_entry = {
                 "origin_name": origin_name,
                 "origin_lat": st.session_state.origin_coord[0],
                 "origin_lon": st.session_state.origin_coord[1],
@@ -163,28 +229,28 @@ def show_trip_form():
                 "mode": travel_mode,
                 "purpose": trip_purpose
             }
-            try:
-                save_response(st.session_state.trip_data)
-                st.session_state.origin_coord = None
-                st.session_state.dest_coord = None
-                navigate_to('success_page')
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Failed to save: {e}")
+            st.session_state.trips.append(trip_entry)
+            st.session_state.origin_coord = None
+            st.session_state.dest_coord = None
+            navigate_to('trip_diary')
+            st.rerun()
 
-    if st.button("Back to Start"):
-        navigate_to('landing')
+    if st.button("Cancel - Back to Diary"):
+        navigate_to('trip_diary')
         st.rerun()
 
 def show_success_page():
     st.balloons()
     st.title("✅ Thank You!")
-    st.success("Your trip and coordinates have been saved successfully.")
-    st.write("### Summary of your submission:")
-    st.json(st.session_state.trip_data)
-    if st.button("Record Another Trip"):
-        st.session_state.trip_data = {}
-        navigate_to('trip_form')
+    st.success(f"All {len(st.session_state.trips)} trips have been saved successfully.")
+    
+    st.write("Thank you for contributing to your city's planning efforts!")
+
+    if st.button("Start a New Diary"):
+        st.session_state.trips = []
+        st.session_state.demographics = {}
+        st.session_state.session_id = str(uuid.uuid4())
+        navigate_to('landing')
         st.rerun()
 
 def show_admin_dashboard():
@@ -197,65 +263,59 @@ def show_admin_dashboard():
 
     # --- Metrics ---
     st.subheader("📈 Key Metrics")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Responses", len(df))
-    col2.metric("Unique Modes", df['mode'].nunique())
-    col3.metric("Most Common Purpose", df['purpose'].mode()[0])
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Trips", len(df))
+    col2.metric("Total Sessions", df['session_id'].nunique())
+    col3.metric("Avg Trips/User", f"{len(df) / df['session_id'].nunique():.1f}")
+    col4.metric("Most Common Mode", df['mode'].mode()[0])
 
     # --- Charts ---
     st.subheader("🚲 Travel Behavior")
     c1, c2 = st.columns(2)
-    
     with c1:
         st.write("#### Modal Split")
         fig_mode = px.pie(df, names='mode', hole=0.4)
         st.plotly_chart(fig_mode, use_container_width=True)
-    
     with c2:
         st.write("#### Trip Purpose")
         fig_purpose = px.bar(df['purpose'].value_counts())
         st.plotly_chart(fig_purpose, use_container_width=True)
 
+    st.subheader("👤 Demographics")
+    d1, d2 = st.columns(2)
+    with d1:
+        st.write("#### Age Group Distribution")
+        fig_age = px.pie(df.drop_duplicates('session_id'), names='age_group')
+        st.plotly_chart(fig_age, use_container_width=True)
+    with d2:
+        st.write("#### Occupation Distribution")
+        fig_occ = px.bar(df.drop_duplicates('session_id')['occupation'].value_counts())
+        st.plotly_chart(fig_occ, use_container_width=True)
+
     # --- Mapping ---
     st.subheader("🗺️ Trip Geography")
-    
-    # Prepare data for Pydeck
     origin_df = df[['origin_lat', 'origin_lon']].rename(columns={'origin_lat': 'lat', 'origin_lon': 'lon'})
-    origin_df['type'] = 'Origin'
     origin_df['color'] = '[0, 200, 0, 160]'
-    
     dest_df = df[['dest_lat', 'dest_lon']].rename(columns={'dest_lat': 'lat', 'dest_lon': 'lon'})
-    dest_df['type'] = 'Destination'
     dest_df['color'] = '[200, 0, 0, 160]'
-    
     points_df = pd.concat([origin_df, dest_df])
 
     st.pydeck_chart(pdk.Deck(
         map_style='mapbox://styles/mapbox/light-v9',
-        initial_view_state=pdk.ViewState(
-            latitude=df['origin_lat'].mean(),
-            longitude=df['origin_lon'].mean(),
-            zoom=11,
-            pitch=0,
-        ),
-        layers=[
-            pdk.Layer(
-                'ScatterplotLayer',
-                data=points_df,
-                get_position='[lon, lat]',
-                get_color='color',
-                get_radius=200,
-            ),
-        ],
+        initial_view_state=pdk.ViewState(latitude=df['origin_lat'].mean(), longitude=df['origin_lon'].mean(), zoom=11),
+        layers=[pdk.Layer('ScatterplotLayer', data=points_df, get_position='[lon, lat]', get_color='color', get_radius=200)],
     ))
 
-    # --- Data Table ---
     st.subheader("📄 Raw Data")
     st.dataframe(df)
 
 # --- Page Router ---
 if st.session_state.current_page == 'landing':
     show_landing_page()
+elif st.session_state.current_page == 'demographics_form':
+    show_demographics_form()
+elif st.session_state.current_page == 'trip_diary':
+    show_trip_diary()
 elif st.session_state.current_page == 'trip_form':
     show_trip_form()
 elif st.session_state.current_page == 'success_page':
