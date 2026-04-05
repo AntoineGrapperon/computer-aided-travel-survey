@@ -13,12 +13,12 @@ This backlog outlines the planned features and improvements for the CATS applica
 - [x] **Multi-trip Entries:** Ability for a user to log all trips taken within a single 24-hour period.
 - [x] **Demographic Information:** Optional section for age, gender, occupation, and household characteristics.
 - [ ] **Mobile Optimization:** Refining the UI/UX for use on smartphones.
-- [ ] **Auto-Geocoding:** Converting typed addresses to latitude/longitude coordinates automatically.
-- [ ] **Advanced Validation:** Highlighting unrealistic speeds (e.g., walking 100km/h) or overlapping trips.
+- [x] **Auto-Geocoding:** Converting typed addresses to latitude/longitude coordinates automatically.
+- [x] **Advanced Validation:** Highlighting unrealistic speeds (e.g., walking 100km/h) or overlapping trips.
 
 ## 📊 Phase 3: Admin & Analytics Dashboard
 - [x] **Real-time Monitoring:** A secure dashboard for administrators to track response rates and demographics.
-- [ ] **Origin-Destination (O-D) Matrices:** Tables and maps showing travel flows between different city zones.
+- [x] **Origin-Destination (O-D) Flows (Visual):** Tables and maps showing travel flows between different city zones.
 - [x] **Modal Split Visualization:** Pie charts and bar graphs detailing the share of each transport mode.
 - [x] **Heatmaps:** Visualizing popular travel corridors and time-of-day peaks.
 - [ ] **Data Export:** Secure download of anonymized survey data in CSV, GeoJSON, and XLSX formats.
