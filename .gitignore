@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+venv/
+.env
+survey_responses.csv
+.pytest_cache/
