@@ -23,6 +23,154 @@ CSV_FILE = "survey_responses.csv"
 DEFAULT_LOCATION = [48.8566, 2.3522]  # Paris
 ADMIN_PASSWORD = "city_planning_2026"  # In a real app, use secrets or env vars
 
+# Multilingual Support
+TRANSLATIONS = {
+    "en": {
+        "landing_title": "🏙️ Welcome to the City Travel Survey",
+        "landing_desc": "Thank you for participating in our effort to improve urban mobility. By sharing your daily travel habits, you help us design better infrastructure.",
+        "how_it_works": "### How it works:",
+        "step_1": "1. Tell us a bit about yourself (optional demographics).",
+        "step_2": "2. Log all your trips for a single 24-hour period.",
+        "step_3": "3. Review and submit your Trip Diary.",
+        "anonymized": "*Your data is anonymized and used exclusively for city planning purposes.*",
+        "start_survey": "Start Survey",
+        "about_you_title": "👤 About You",
+        "about_you_desc": "This information helps us understand who is traveling and how.",
+        "age_group": "Age Group",
+        "gender": "Gender",
+        "occupation": "Primary Occupation",
+        "cont_to_diary": "Continue to Trip Diary",
+        "diary_title": "📋 Your Trip Diary",
+        "diary_desc": "Please log all trips you made yesterday (or on a typical travel day).",
+        "logged_trips": "Logged Trips",
+        "no_trips": "No trips logged yet. Click 'Add a Trip' to begin.",
+        "add_trip": "➕ Add a Trip",
+        "finish_submit": "🏁 Finish and Submit All Trips",
+        "record_trip_title": "🚆 Record a Trip",
+        "record_trip_desc": "Select your travel points on the map, then fill in the details.",
+        "where_go": "1. Where did you go?",
+        "search_orig": "Search Origin Address",
+        "search_dest": "Search Destination Address",
+        "find_orig": "🔍 Find Origin",
+        "find_dest": "🔍 Find Destination",
+        "select_map_manual": "Select point to place on map manually:",
+        "orig_set": "✅ Origin Set",
+        "dest_set": "✅ Destination Set",
+        "click_orig": "📍 Click map to set Origin",
+        "click_dest": "📍 Click map to set Destination",
+        "trip_details": "2. Trip Details",
+        "orig_name": "Origin Name",
+        "dest_name": "Destination Name",
+        "dep_time": "Departure Time",
+        "arr_time": "Arrival Time",
+        "how_travel": "How did you travel?",
+        "trip_purpose": "What was the purpose of this trip?",
+        "add_to_diary": "Add Trip to Diary",
+        "cancel_back": "Cancel - Back to Diary",
+        "success_thanks": "✅ Thank You!",
+        "success_saved": "All {count} trips have been saved successfully.",
+        "success_city": "Thank you for contributing to your city's planning efforts!",
+        "new_diary": "Start a New Diary",
+        "admin_title": "📊 Admin Analytics Dashboard",
+        "key_metrics": "📈 Key Metrics",
+        "total_trips": "Total Trips",
+        "total_sessions": "Total Sessions",
+        "avg_trips": "Avg Trips/User",
+        "common_mode": "Most Common Mode",
+        "travel_behavior": "🚲 Travel Behavior",
+        "modal_split": "Modal Split",
+        "trip_purpose_chart": "Trip Purpose",
+        "demographics_chart": "👤 Demographics",
+        "age_dist": "Age Group Distribution",
+        "occ_dist": "Occupation Distribution",
+        "trip_geography": "🗺️ Trip Geography & Flows",
+        "raw_data": "📄 Raw Data",
+        "export_data": "📥 Export Data",
+        "download_csv": "Download CSV Responses",
+        "export_geojson": "Export to GeoJSON (GIS)",
+        "admin_login": "🔒 Admin Access",
+        "password": "Password",
+        "login": "Log In",
+        "logout": "🔓 Logout Admin"
+    },
+    "fr": {
+        "landing_title": "🏙️ Bienvenue à l'enquête sur les déplacements urbains",
+        "landing_desc": "Merci de participer à notre effort pour améliorer la mobilité urbaine. En partageant vos habitudes de voyage, vous nous aidez à concevoir de meilleures infrastructures.",
+        "how_it_works": "### Comment ça marche :",
+        "step_1": "1. Parlez-nous un peu de vous (démographie facultative).",
+        "step_2": "2. Enregistrez tous vos trajets pour une période de 24 heures.",
+        "step_3": "3. Vérifiez et soumettez votre carnet de voyage.",
+        "anonymized": "*Vos données sont anonymisées et utilisées exclusivement à des fins de planification urbaine.*",
+        "start_survey": "Commencer l'enquête",
+        "about_you_title": "👤 À propos de vous",
+        "about_you_desc": "Ces informations nous aident à comprendre qui se déplace et comment.",
+        "age_group": "Groupe d'âge",
+        "gender": "Genre",
+        "occupation": "Occupation principale",
+        "cont_to_diary": "Continuer vers le carnet de voyage",
+        "diary_title": "📋 Votre carnet de voyage",
+        "diary_desc": "Veuillez enregistrer tous les trajets que vous avez effectués hier (ou lors d'une journée de voyage typique).",
+        "logged_trips": "Trajets enregistrés",
+        "no_trips": "Aucun trajet enregistré. Cliquez sur 'Ajouter un trajet' pour commencer.",
+        "add_trip": "➕ Ajouter un trajet",
+        "finish_submit": "🏁 Terminer et soumettre tous les trajets",
+        "record_trip_title": "🚆 Enregistrer un trajet",
+        "record_trip_desc": "Sélectionnez vos points de voyage sur la carte, puis remplissez les détails.",
+        "where_go": "1. Où êtes-vous allé ?",
+        "search_orig": "Rechercher l'adresse d'origine",
+        "search_dest": "Rechercher l'adresse de destination",
+        "find_orig": "🔍 Trouver l'origine",
+        "find_dest": "🔍 Trouver la destination",
+        "select_map_manual": "Sélectionnez manuellement le point sur la carte :",
+        "orig_set": "✅ Origine définie",
+        "dest_set": "✅ Destination définie",
+        "click_orig": "📍 Cliquez sur la carte pour définir l'origine",
+        "click_dest": "📍 Cliquez sur la carte pour définir la destination",
+        "trip_details": "2. Détails du trajet",
+        "orig_name": "Nom de l'origine",
+        "dest_name": "Nom de la destination",
+        "dep_time": "Heure de départ",
+        "arr_time": "Heure d'arrivée",
+        "how_travel": "Comment avez-vous voyagé ?",
+        "trip_purpose": "Quel était le but de ce trajet ?",
+        "add_to_diary": "Ajouter le trajet au carnet",
+        "cancel_back": "Annuler - Retour au carnet",
+        "success_thanks": "✅ Merci !",
+        "success_saved": "Tous les {count} trajets ont été enregistrés avec succès.",
+        "success_city": "Merci de contribuer aux efforts de planification de votre ville !",
+        "new_diary": "Commencer un nouveau carnet",
+        "admin_title": "📊 Tableau de bord analytique",
+        "key_metrics": "📈 Métriques clés",
+        "total_trips": "Total des trajets",
+        "total_sessions": "Total des sessions",
+        "avg_trips": "Moy. trajets/utilisateur",
+        "common_mode": "Mode le plus courant",
+        "travel_behavior": "🚲 Comportement de voyage",
+        "modal_split": "Répartition modale",
+        "trip_purpose_chart": "But du trajet",
+        "demographics_chart": "👤 Démographie",
+        "age_dist": "Répartition par groupe d'âge",
+        "occ_dist": "Répartition par occupation",
+        "trip_geography": "🗺️ Géographie et flux des trajets",
+        "raw_data": "📄 Données brutes",
+        "export_data": "📥 Exporter les données",
+        "download_csv": "Télécharger les réponses CSV",
+        "export_geojson": "Exporter vers GeoJSON (GIS)",
+        "admin_login": "🔒 Accès administrateur",
+        "password": "Mot de passe",
+        "login": "Se connecter",
+        "logout": "🔓 Se déconnecter Admin"
+    }
+}
+
+def t(key, **kwargs):
+    """Helper function to get translated text."""
+    lang = st.session_state.get('lang', 'en')
+    text = TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
+
 # Initialize Geocoder
 geolocator = Nominatim(user_agent="cats_travel_survey_app")
 
@@ -162,11 +310,24 @@ def convert_to_geojson(df):
 
 # --- Navigation (Sidebar) ---
 with st.sidebar:
-    st.title("🏙️ CATS Menu")
-    app_mode = st.radio("Choose Section:", ["Respondent (Survey)", "Admin (Dashboard)"])
+    st.title("🏙️ CATS")
+    
+    # Language Selector
+    lang = st.selectbox("🌐 Language / Langue", ["English", "Français"], index=0)
+    st.session_state.lang = "en" if lang == "English" else "fr"
+    
+    st.divider()
+    
+    app_mode = st.radio("Menu", ["Respondent (Survey)", "Admin (Dashboard)"])
     
     if app_mode == "Respondent (Survey)":
-        if st.session_state.current_page == 'admin_dashboard':
+        # Progress Bar for Survey
+        pages = ['landing', 'demographics_form', 'trip_diary', 'trip_form', 'success_page']
+        if st.session_state.current_page in pages:
+            idx = pages.index(st.session_state.current_page)
+            st.progress((idx + 1) / len(pages))
+            
+        if st.session_state.current_page == 'admin_dashboard' or st.session_state.current_page == 'admin_login':
             navigate_to('landing')
     else:
         # Check authentication for Admin mode
@@ -174,7 +335,7 @@ with st.sidebar:
             navigate_to('admin_login')
         else:
             navigate_to('admin_dashboard')
-            if st.button("🔓 Logout Admin"):
+            if st.button(t("logout")):
                 st.session_state.is_admin_authenticated = False
                 navigate_to('landing')
                 st.rerun()
@@ -182,17 +343,17 @@ with st.sidebar:
 # --- Pages ---
 
 def show_admin_login():
-    st.title("🔒 Admin Access")
-    st.write("Please enter the administrative password to access the dashboard.")
+    st.title(t("admin_login"))
+    st.write(t("admin_login_desc", default="Please enter the administrative password."))
     
     with st.form("login_form"):
-        password = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("Log In")
+        password = st.text_input(t("password"), type="password")
+        submitted = st.form_submit_button(t("login"))
         
         if submitted:
             if password == ADMIN_PASSWORD:
                 st.session_state.is_admin_authenticated = True
-                st.success("Authenticated successfully!")
+                st.success("Authenticated!")
                 navigate_to('admin_dashboard')
                 st.rerun()
             else:
@@ -203,32 +364,32 @@ def show_admin_login():
         st.rerun()
 
 def show_landing_page():
-    st.title("🏙️ Welcome to the City Travel Survey")
-    st.markdown("""
-    Thank you for participating in our effort to improve urban mobility. 
-    By sharing your daily travel habits, you help us design better infrastructure.
+    st.title(t("landing_title"))
+    st.markdown(f"""
+    {t("landing_desc")}
 
-    ### How it works:
-    1. Tell us a bit about yourself (optional demographics).
-    2. Log all your trips for a single 24-hour period.
-    3. Review and submit your Trip Diary.
+    {t("how_it_works")}
+    {t("step_1")}
+    {t("step_2")}
+    {t("step_3")}
 
-    *Your data is anonymized and used exclusively for city planning purposes.*
+    {t("anonymized")}
     """)
     
-    if st.button("Start Survey", type="primary"):
+    if st.button(t("start_survey"), type="primary", use_container_width=True):
         navigate_to('demographics_form')
+        st.rerun()
 
 def show_demographics_form():
-    st.title("👤 About You")
-    st.write("This information helps us understand who is traveling and how.")
+    st.title(t("about_you_title"))
+    st.write(t("about_you_desc"))
     
     with st.form("demographics_form"):
-        age_group = st.selectbox("Age Group", ["Under 18", "18-24", "25-44", "45-64", "65+"])
-        gender = st.selectbox("Gender", ["Woman", "Man", "Non-binary", "Prefer not to say"])
-        occupation = st.selectbox("Primary Occupation", ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"])
+        age_group = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"])
+        gender = st.selectbox(t("gender"), ["Woman", "Man", "Non-binary", "Prefer not to say"])
+        occupation = st.selectbox(t("occupation"), ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"])
         
-        submitted = st.form_submit_button("Continue to Trip Diary", type="primary")
+        submitted = st.form_submit_button(t("cont_to_diary"), type="primary", use_container_width=True)
         
     if submitted:
         st.session_state.demographics = {
@@ -240,94 +401,86 @@ def show_demographics_form():
         st.rerun()
 
 def show_trip_diary():
-    st.title("📋 Your Trip Diary")
-    st.write("Please log all trips you made yesterday (or on a typical travel day).")
+    st.title(t("diary_title"))
+    st.write(t("diary_desc"))
     
     if st.session_state.trips:
-        st.subheader("Logged Trips")
+        st.subheader(t("logged_trips"))
         for i, trip in enumerate(st.session_state.trips):
             origin_label = trip.get('origin_name') or "Unknown Origin"
             dest_label = trip.get('destination_name') or "Unknown Destination"
             mode_label = trip.get('mode') or "Unknown Mode"
             
             with st.expander(f"Trip {i+1}: {origin_label} ➔ {dest_label} ({mode_label})"):
-                col_t1, col_t2 = st.columns(2)
+                col_t1, col_t2 = st.columns([2, 1])
                 with col_t1:
                     st.write(f"**From:** {trip.get('departure_time', '??')} | **To:** {trip.get('arrival_time', '??')}")
                     st.write(f"**Purpose:** {trip.get('purpose', 'Unknown')}")
                 with col_t2:
-                    st.write(f"**Distance:** {trip.get('distance_km', 0)} km")
-                    speed = trip.get('speed_kmh', 0)
-                    st.write(f"**Avg Speed:** {speed} km/h")
+                    st.write(f"**Dist:** {trip.get('distance_km', 0)} km")
+                    st.write(f"**Speed:** {trip.get('speed_kmh', 0)} km/h")
                     
-                if st.button(f"Remove Trip {i+1}", key=f"remove_{i}"):
+                if st.button(f"🗑️ Remove", key=f"remove_{i}", use_container_width=True):
                     st.session_state.trips.pop(i)
                     st.rerun()
     else:
-        st.info("No trips logged yet. Click 'Add a Trip' to begin.")
+        st.info(t("no_trips"))
         
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("➕ Add a Trip", type="primary"):
-            navigate_to('trip_form')
-            st.rerun()
+    st.divider()
+    if st.button(t("add_trip"), type="primary", use_container_width=True):
+        navigate_to('trip_form')
+        st.rerun()
             
-    with col2:
-        if st.session_state.trips:
-            if st.button("🏁 Finish and Submit All Trips"):
-                try:
-                    save_responses(st.session_state.trips, st.session_state.demographics)
-                    navigate_to('success_page')
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Failed to save: {e}")
+    if st.session_state.trips:
+        if st.button(t("finish_submit"), type="secondary", use_container_width=True):
+            try:
+                save_responses(st.session_state.trips, st.session_state.demographics)
+                navigate_to('success_page')
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to save: {e}")
 
 def show_trip_form():
-    st.title("🚆 Record a Trip")
-    st.write("Select your travel points on the map, then fill in the details.")
+    st.title(t("record_trip_title"))
+    st.write(t("record_trip_desc"))
 
     # --- Mapping Section ---
-    st.subheader("1. Where did you go?")
+    st.subheader(t("where_go"))
     
-    # Address Search
+    # Address Search (Responsive columns)
     col_search1, col_search2 = st.columns(2)
     with col_search1:
-        origin_addr = st.text_input("Search Origin Address", placeholder="e.g., 10 Downing St, London")
-        if st.button("🔍 Find Origin"):
+        origin_addr = st.text_input(t("search_orig"), placeholder="e.g., Gare du Nord, Paris")
+        if st.button(t("find_orig"), use_container_width=True):
             if origin_addr:
                 coords = geocode_address(origin_addr)
                 if coords:
                     st.session_state.origin_coord = coords
-                    st.success(f"Found: {coords}")
                     st.rerun()
                 else:
-                    st.error("Address not found.")
-            else:
-                st.warning("Please enter an address.")
+                    st.error("Not found.")
 
     with col_search2:
-        dest_addr = st.text_input("Search Destination Address", placeholder="e.g., Eiffel Tower, Paris")
-        if st.button("🔍 Find Destination"):
+        dest_addr = st.text_input(t("search_dest"), placeholder="e.g., Louvre, Paris")
+        if st.button(t("find_dest"), use_container_width=True):
             if dest_addr:
                 coords = geocode_address(dest_addr)
                 if coords:
                     st.session_state.dest_coord = coords
-                    st.success(f"Found: {coords}")
                     st.rerun()
                 else:
-                    st.error("Address not found.")
-            else:
-                st.warning("Please enter an address.")
+                    st.error("Not found.")
 
-    selection_mode = st.radio("Select point to place on map manually:", ["Origin", "Destination"], horizontal=True)
+    selection_mode = st.radio(t("select_map_manual"), ["Origin", "Destination"], horizontal=True)
 
+    # Use a slightly smaller map for mobile compatibility
     m = folium.Map(location=DEFAULT_LOCATION, zoom_start=12)
     if st.session_state.origin_coord:
         folium.Marker(st.session_state.origin_coord, popup="Origin", icon=folium.Icon(color='green', icon='play')).add_to(m)
     if st.session_state.dest_coord:
         folium.Marker(st.session_state.dest_coord, popup="Destination", icon=folium.Icon(color='red', icon='stop')).add_to(m)
 
-    output = st_folium(m, width=700, height=400)
+    output = st_folium(m, width="100%", height=300) # Reduced height for mobile
 
     if output.get("last_clicked"):
         lat, lng = output["last_clicked"]["lat"], output["last_clicked"]["lng"]
@@ -342,70 +495,51 @@ def show_trip_form():
 
     col_o, col_d = st.columns(2)
     with col_o:
-        if st.session_state.origin_coord: st.success(f"✅ Origin Set")
-        else: st.info("📍 Click map to set Origin")
+        if st.session_state.origin_coord: st.success(t("orig_set"))
+        else: st.info(t("click_orig"))
     with col_d:
-        if st.session_state.dest_coord: st.success(f"✅ Destination Set")
-        else: st.info("📍 Click map to set Destination")
+        if st.session_state.dest_coord: st.success(t("dest_set"))
+        else: st.info(t("click_dest"))
 
     # --- Details Section ---
-    st.subheader("2. Trip Details")
+    st.subheader(t("trip_details"))
     with st.form("trip_details_form"):
-        col_orig_name, col_dest_name = st.columns(2)
-        with col_orig_name:
-            origin_name = st.text_input("Origin Name", placeholder="e.g., Home")
-        with col_dest_name:
-            destination_name = st.text_input("Destination Name", placeholder="e.g., Work")
+        origin_name = st.text_input(t("orig_name"), placeholder="e.g., Home")
+        destination_name = st.text_input(t("dest_name"), placeholder="e.g., Work")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            departure_time = st.time_input("Departure Time", value=time(8, 0))
-        with col2:
-            arrival_time = st.time_input("Arrival Time", value=time(8, 30))
+        col_time1, col_time2 = st.columns(2)
+        with col_time1:
+            departure_time = st.time_input(t("dep_time"), value=time(8, 0))
+        with col_time2:
+            arrival_time = st.time_input(t("arr_time"), value=time(8, 30))
 
         mode_options = ["Walk", "Bicycle", "Car (Driver)", "Car (Passenger)", "Public Transit", "Motorcycle", "Other"]
-        travel_mode = st.selectbox("How did you travel?", options=mode_options)
+        travel_mode = st.selectbox(t("how_travel"), options=mode_options)
 
         purpose_options = ["Work", "Education", "Shopping", "Social/Leisure", "Personal Business", "Other"]
-        trip_purpose = st.selectbox("What was the purpose of this trip?", options=purpose_options)
+        trip_purpose = st.selectbox(t("trip_purpose"), options=purpose_options)
 
-        submitted = st.form_submit_button("Add Trip to Diary", type="primary")
+        submitted = st.form_submit_button(t("add_to_diary"), type="primary", use_container_width=True)
 
     if submitted:
         dep_str = departure_time.strftime("%H:%M")
         arr_str = arrival_time.strftime("%H:%M")
         
-        # 1. Coordinate Validation
         if not st.session_state.origin_coord or not st.session_state.dest_coord:
-            st.error("❌ Please select both Origin and Destination on the map.")
-        
-        # 2. Time Logic Validation
+            st.error("❌ " + t("click_orig") + " / " + t("click_dest"))
         elif arrival_time <= departure_time:
-            st.error("❌ Arrival time must be after the departure time.")
-            
-        # 3. Overlap Validation
+            st.error("❌ " + t("arr_time") + " <= " + t("dep_time"))
         else:
             is_overlap, overlapping_trip = check_overlap(dep_str, arr_str, st.session_state.trips)
             if is_overlap:
-                st.error(f"❌ This trip overlaps with an existing entry ({overlapping_trip['departure_time']} - {overlapping_trip['arrival_time']}).")
+                st.error(f"❌ Overlap: {overlapping_trip['departure_time']} - {overlapping_trip['arrival_time']}")
             else:
-                # 4. Speed Validation
                 dist_km, speed_kmh = calculate_trip_stats(
                     st.session_state.origin_coord[0], st.session_state.origin_coord[1],
                     st.session_state.dest_coord[0], st.session_state.dest_coord[1],
                     dep_str, arr_str
                 )
                 
-                # Basic speed thresholds (km/h)
-                unrealistic = False
-                if travel_mode == "Walk" and speed_kmh > 15: unrealistic = True
-                if travel_mode == "Bicycle" and speed_kmh > 50: unrealistic = True
-                if travel_mode in ["Car (Driver)", "Car (Passenger)"] and speed_kmh > 180: unrealistic = True
-                
-                if unrealistic:
-                    st.warning(f"⚠️ The calculated speed ({speed_kmh} km/h) seems unrealistic for {travel_mode}. Please check your times and locations.")
-                
-                # Proceed to add
                 trip_entry = {
                     "origin_name": origin_name,
                     "origin_lat": st.session_state.origin_coord[0],
@@ -426,18 +560,18 @@ def show_trip_form():
                 navigate_to('trip_diary')
                 st.rerun()
 
-    if st.button("Cancel - Back to Diary"):
+    if st.button(t("cancel_back"), use_container_width=True):
         navigate_to('trip_diary')
         st.rerun()
 
 def show_success_page():
     st.balloons()
-    st.title("✅ Thank You!")
-    st.success(f"All {len(st.session_state.trips)} trips have been saved successfully.")
+    st.title(t("success_thanks"))
+    st.success(t("success_saved", count=len(st.session_state.trips)))
     
-    st.write("Thank you for contributing to your city's planning efforts!")
+    st.write(t("success_city"))
 
-    if st.button("Start a New Diary"):
+    if st.button(t("new_diary"), use_container_width=True):
         st.session_state.trips = []
         st.session_state.demographics = {}
         st.session_state.session_id = str(uuid.uuid4())
@@ -445,46 +579,45 @@ def show_success_page():
         st.rerun()
 
 def show_admin_dashboard():
-    st.title("📊 Admin Analytics Dashboard")
+    st.title(t("admin_title"))
     df = load_data()
     
     if df.empty:
-        st.warning("No survey responses found yet. Start collecting data to see analytics!")
+        st.warning("No survey responses found yet.")
         return
 
     # --- Metrics ---
-    st.subheader("📈 Key Metrics")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Trips", len(df))
-    col2.metric("Total Sessions", df['session_id'].nunique())
-    col3.metric("Avg Trips/User", f"{len(df) / df['session_id'].nunique():.1f}")
-    col4.metric("Most Common Mode", df['mode'].mode()[0])
+    st.subheader(t("key_metrics"))
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(t("total_trips"), len(df))
+        st.metric(t("total_sessions"), df['session_id'].nunique())
+    with col2:
+        st.metric(t("avg_trips"), f"{len(df) / df['session_id'].nunique():.1f}")
+        st.metric(t("common_mode"), df['mode'].mode()[0])
 
     # --- Charts ---
-    st.subheader("🚲 Travel Behavior")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write("#### Modal Split")
-        fig_mode = px.pie(df, names='mode', hole=0.4)
-        st.plotly_chart(fig_mode, use_container_width=True)
-    with c2:
-        st.write("#### Trip Purpose")
-        fig_purpose = px.bar(df['purpose'].value_counts())
-        st.plotly_chart(fig_purpose, use_container_width=True)
+    st.subheader(t("travel_behavior"))
+    
+    st.write(f"#### {t('modal_split')}")
+    fig_mode = px.pie(df, names='mode', hole=0.4)
+    st.plotly_chart(fig_mode, use_container_width=True)
+    
+    st.write(f"#### {t('trip_purpose_chart')}")
+    fig_purpose = px.bar(df['purpose'].value_counts())
+    st.plotly_chart(fig_purpose, use_container_width=True)
 
-    st.subheader("👤 Demographics")
-    d1, d2 = st.columns(2)
-    with d1:
-        st.write("#### Age Group Distribution")
-        fig_age = px.pie(df.drop_duplicates('session_id'), names='age_group')
-        st.plotly_chart(fig_age, use_container_width=True)
-    with d2:
-        st.write("#### Occupation Distribution")
-        fig_occ = px.bar(df.drop_duplicates('session_id')['occupation'].value_counts())
-        st.plotly_chart(fig_occ, use_container_width=True)
+    st.subheader(t("demographics_chart"))
+    st.write(f"#### {t('age_dist')}")
+    fig_age = px.pie(df.drop_duplicates('session_id'), names='age_group')
+    st.plotly_chart(fig_age, use_container_width=True)
+    
+    st.write(f"#### {t('occ_dist')}")
+    fig_occ = px.bar(df.drop_duplicates('session_id')['occupation'].value_counts())
+    st.plotly_chart(fig_occ, use_container_width=True)
 
     # --- Mapping ---
-    st.subheader("🗺️ Trip Geography & Flows")
+    st.subheader(t("trip_geography"))
     
     # Points for Scatterplot
     origin_df = df[['origin_lat', 'origin_lon']].rename(columns={'origin_lat': 'lat', 'origin_lon': 'lon'})
@@ -493,9 +626,6 @@ def show_admin_dashboard():
     dest_df['color'] = '[200, 0, 0, 160]'
     points_df = pd.concat([origin_df, dest_df])
 
-    # Arcs for Flows
-    # Pydeck ArcLayer expects [start_lon, start_lat, end_lon, end_lat]
-    # Filter out any None coordinates
     flow_df = df.dropna(subset=['origin_lat', 'origin_lon', 'dest_lat', 'dest_lon'])
 
     st.pydeck_chart(pdk.Deck(
@@ -503,11 +633,10 @@ def show_admin_dashboard():
         initial_view_state=pdk.ViewState(
             latitude=df['origin_lat'].mean() if not df.empty else DEFAULT_LOCATION[0], 
             longitude=df['origin_lon'].mean() if not df.empty else DEFAULT_LOCATION[1], 
-            zoom=11,
+            zoom=10,
             pitch=45
         ),
         layers=[
-            # Arcs
             pdk.Layer(
                 'ArcLayer',
                 data=flow_df,
@@ -517,7 +646,6 @@ def show_admin_dashboard():
                 get_target_color='[200, 0, 0, 80]',
                 get_width=2,
             ),
-            # Points
             pdk.Layer(
                 'ScatterplotLayer',
                 data=points_df,
@@ -528,31 +656,27 @@ def show_admin_dashboard():
         ],
     ))
 
-    st.subheader("📄 Raw Data")
+    st.subheader(t("raw_data"))
     st.dataframe(df)
 
     # --- Data Export ---
-    st.subheader("📥 Export Data")
-    col_ex1, col_ex2 = st.columns(2)
+    st.subheader(t("export_data"))
+    st.download_button(
+        label=t("download_csv"),
+        data=df.to_csv(index=False).encode('utf-8'),
+        file_name=f"cats_survey_data_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime='text/csv',
+        use_container_width=True
+    )
     
-    with col_ex1:
-        st.write("#### Download CSV")
-        st.download_button(
-            label="Download CSV Responses",
-            data=df.to_csv(index=False).encode('utf-8'),
-            file_name=f"cats_survey_data_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime='text/csv',
-        )
-    
-    with col_ex2:
-        st.write("#### Export to GeoJSON (GIS)")
-        geojson_data = convert_to_geojson(df)
-        st.download_button(
-            label="Download GeoJSON Flows",
-            data=geojson_data,
-            file_name=f"cats_survey_flows_{datetime.now().strftime('%Y%m%d')}.geojson",
-            mime='application/json',
-        )
+    geojson_data = convert_to_geojson(df)
+    st.download_button(
+        label=t("export_geojson"),
+        data=geojson_data,
+        file_name=f"cats_survey_flows_{datetime.now().strftime('%Y%m%d')}.geojson",
+        mime='application/json',
+        use_container_width=True
+    )
 
 # --- Page Router ---
 if st.session_state.current_page == 'landing':
