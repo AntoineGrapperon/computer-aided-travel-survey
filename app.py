@@ -67,10 +67,21 @@ def save_responses(trips, demographics):
             new_df.to_csv(CSV_FILE, mode='a', header=False, index=False)
 
 def load_data():
-    """Loads survey data from CSV."""
+    """Loads survey data from CSV and ensures all expected columns exist."""
+    expected_columns = [
+        'origin_name', 'origin_lat', 'origin_lon', 
+        'dest_name', 'dest_lat', 'dest_lon', 
+        'departure_time', 'arrival_time', 'mode', 'purpose',
+        'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp'
+    ]
     if os.path.isfile(CSV_FILE):
-        return pd.read_csv(CSV_FILE)
-    return pd.DataFrame()
+        df = pd.read_csv(CSV_FILE)
+        # Ensure all expected columns are present (for backward compatibility)
+        for col in expected_columns:
+            if col not in df.columns:
+                df[col] = None
+        return df
+    return pd.DataFrame(columns=expected_columns)
 
 # --- Navigation (Sidebar) ---
 with st.sidebar:
