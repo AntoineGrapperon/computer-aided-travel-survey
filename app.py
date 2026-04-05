@@ -139,9 +139,13 @@ def show_trip_diary():
     if st.session_state.trips:
         st.subheader("Logged Trips")
         for i, trip in enumerate(st.session_state.trips):
-            with st.expander(f"Trip {i+1}: {trip['origin_name']} ➔ {trip['destination_name']} ({trip['mode']})"):
-                st.write(f"**From:** {trip['departure_time']} | **To:** {trip['arrival_time']}")
-                st.write(f"**Purpose:** {trip['purpose']}")
+            origin_label = trip.get('origin_name') or "Unknown Origin"
+            dest_label = trip.get('destination_name') or "Unknown Destination"
+            mode_label = trip.get('mode') or "Unknown Mode"
+            
+            with st.expander(f"Trip {i+1}: {origin_label} ➔ {dest_label} ({mode_label})"):
+                st.write(f"**From:** {trip.get('departure_time', '??')} | **To:** {trip.get('arrival_time', '??')}")
+                st.write(f"**Purpose:** {trip.get('purpose', 'Unknown')}")
                 if st.button(f"Remove Trip {i+1}", key=f"remove_{i}"):
                     st.session_state.trips.pop(i)
                     st.rerun()
