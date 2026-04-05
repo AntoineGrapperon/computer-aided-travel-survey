@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import folium
+import plotly.express as px
+import pydeck as pdk
 from streamlit_folium import st_folium
 from datetime import datetime, time
 
@@ -9,7 +11,7 @@ from datetime import datetime, time
 st.set_page_config(
     page_title="CATS - City Travel Survey",
     page_icon="🏙️",
-    layout="centered"
+    layout="wide"
 )
 
 # Constants
@@ -34,26 +36,35 @@ def navigate_to(page):
 
 def save_response(data):
     """Saves the trip data to a local CSV file."""
-    # Add submission timestamp
     data['submission_timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Create DataFrame from new entry
     new_df = pd.DataFrame([data])
     
-    # Append to file or create new with header
     if not os.path.isfile(CSV_FILE):
         new_df.to_csv(CSV_FILE, index=False)
     else:
-        # Check if the file has all columns (handle schema updates)
         existing_df = pd.read_csv(CSV_FILE, nrows=0)
         if set(new_df.columns) != set(existing_df.columns):
-            # If schema changed, we read everything and re-save with new headers
-            # (Simple approach for small datasets)
             full_df = pd.read_csv(CSV_FILE)
             combined = pd.concat([full_df, new_df], ignore_index=True)
             combined.to_csv(CSV_FILE, index=False)
         else:
             new_df.to_csv(CSV_FILE, mode='a', header=False, index=False)
+
+def load_data():
+    """Loads survey data from CSV."""
+    if os.path.isfile(CSV_FILE):
+        return pd.read_csv(CSV_FILE)
+    return pd.DataFrame()
+
+# --- Navigation (Sidebar) ---
+with st.sidebar:
+    st.title("🏙️ CATS Admin")
+    app_mode = st.radio("Choose Section:", ["Respondent (Survey)", "Admin (Dashboard)"])
+    if app_mode == "Respondent (Survey)":
+        if st.session_state.current_page == 'admin_dashboard':
+            navigate_to('landing')
+    else:
+        navigate_to('admin_dashboard')
 
 # --- Pages ---
 
@@ -82,35 +93,18 @@ def show_trip_form():
 
     # --- Mapping Section ---
     st.subheader("1. Where did you go?")
-    
-    # Map selection mode
     selection_mode = st.radio("Select point to place on map:", ["Origin", "Destination"], horizontal=True)
 
-    # Initialize map
     m = folium.Map(location=DEFAULT_LOCATION, zoom_start=12)
-    
-    # Add existing markers
     if st.session_state.origin_coord:
-        folium.Marker(
-            st.session_state.origin_coord, 
-            popup="Origin", 
-            icon=folium.Icon(color='green', icon='play')
-        ).add_to(m)
-    
+        folium.Marker(st.session_state.origin_coord, popup="Origin", icon=folium.Icon(color='green', icon='play')).add_to(m)
     if st.session_state.dest_coord:
-        folium.Marker(
-            st.session_state.dest_coord, 
-            popup="Destination", 
-            icon=folium.Icon(color='red', icon='stop')
-        ).add_to(m)
+        folium.Marker(st.session_state.dest_coord, popup="Destination", icon=folium.Icon(color='red', icon='stop')).add_to(m)
 
-    # Capture clicks
     output = st_folium(m, width=700, height=400)
 
     if output.get("last_clicked"):
-        lat = output["last_clicked"]["lat"]
-        lng = output["last_clicked"]["lng"]
-        
+        lat, lng = output["last_clicked"]["lat"], output["last_clicked"]["lng"]
         if selection_mode == "Origin":
             if st.session_state.origin_coord != [lat, lng]:
                 st.session_state.origin_coord = [lat, lng]
@@ -120,54 +114,43 @@ def show_trip_form():
                 st.session_state.dest_coord = [lat, lng]
                 st.rerun()
 
-    # Display selected coordinates status
     col_o, col_d = st.columns(2)
     with col_o:
-        if st.session_state.origin_coord:
-            st.success(f"✅ Origin Set")
-        else:
-            st.info("📍 Click map to set Origin")
+        if st.session_state.origin_coord: st.success(f"✅ Origin Set")
+        else: st.info("📍 Click map to set Origin")
     with col_d:
-        if st.session_state.dest_coord:
-            st.success(f"✅ Destination Set")
-        else:
-            st.info("📍 Click map to set Destination")
+        if st.session_state.dest_coord: st.success(f"✅ Destination Set")
+        else: st.info("📍 Click map to set Destination")
 
     # --- Details Section ---
     st.subheader("2. Trip Details")
     with st.form("trip_details_form"):
-        # Descriptive names (optional but helpful)
         col_orig_name, col_dest_name = st.columns(2)
         with col_orig_name:
             origin_name = st.text_input("Origin Name", placeholder="e.g., Home")
         with col_dest_name:
             destination_name = st.text_input("Destination Name", placeholder="e.g., Work")
 
-        # Time Inputs
         col1, col2 = st.columns(2)
         with col1:
             departure_time = st.time_input("Departure Time", value=time(8, 0))
         with col2:
             arrival_time = st.time_input("Arrival Time", value=time(8, 30))
 
-        # Categorical Inputs
         mode_options = ["Walk", "Bicycle", "Car (Driver)", "Car (Passenger)", "Public Transit", "Motorcycle", "Other"]
         travel_mode = st.selectbox("How did you travel?", options=mode_options)
 
         purpose_options = ["Work", "Education", "Shopping", "Social/Leisure", "Personal Business", "Other"]
         trip_purpose = st.selectbox("What was the purpose of this trip?", options=purpose_options)
 
-        # Submit Button
         submitted = st.form_submit_button("Submit Response", type="primary")
 
     if submitted:
-        # Validation Logic
         if not st.session_state.origin_coord or not st.session_state.dest_coord:
             st.error("❌ Please select both Origin and Destination on the map.")
         elif arrival_time <= departure_time:
             st.error("❌ Arrival time must be after the departure time.")
         else:
-            # Prepare data
             st.session_state.trip_data = {
                 "origin_name": origin_name,
                 "origin_lat": st.session_state.origin_coord[0],
@@ -180,11 +163,8 @@ def show_trip_form():
                 "mode": travel_mode,
                 "purpose": trip_purpose
             }
-            
-            # Save to CSV
             try:
                 save_response(st.session_state.trip_data)
-                # Reset map state for next time
                 st.session_state.origin_coord = None
                 st.session_state.dest_coord = None
                 navigate_to('success_page')
@@ -200,25 +180,85 @@ def show_success_page():
     st.balloons()
     st.title("✅ Thank You!")
     st.success("Your trip and coordinates have been saved successfully.")
-    
     st.write("### Summary of your submission:")
     st.json(st.session_state.trip_data)
-
     if st.button("Record Another Trip"):
         st.session_state.trip_data = {}
         navigate_to('trip_form')
         st.rerun()
 
-    if st.button("Exit to Landing Page"):
-        st.session_state.trip_data = {}
-        navigate_to('landing')
-        st.rerun()
+def show_admin_dashboard():
+    st.title("📊 Admin Analytics Dashboard")
+    df = load_data()
+    
+    if df.empty:
+        st.warning("No survey responses found yet. Start collecting data to see analytics!")
+        return
+
+    # --- Metrics ---
+    st.subheader("📈 Key Metrics")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Responses", len(df))
+    col2.metric("Unique Modes", df['mode'].nunique())
+    col3.metric("Most Common Purpose", df['purpose'].mode()[0])
+
+    # --- Charts ---
+    st.subheader("🚲 Travel Behavior")
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.write("#### Modal Split")
+        fig_mode = px.pie(df, names='mode', hole=0.4)
+        st.plotly_chart(fig_mode, use_container_width=True)
+    
+    with c2:
+        st.write("#### Trip Purpose")
+        fig_purpose = px.bar(df['purpose'].value_counts())
+        st.plotly_chart(fig_purpose, use_container_width=True)
+
+    # --- Mapping ---
+    st.subheader("🗺️ Trip Geography")
+    
+    # Prepare data for Pydeck
+    origin_df = df[['origin_lat', 'origin_lon']].rename(columns={'origin_lat': 'lat', 'origin_lon': 'lon'})
+    origin_df['type'] = 'Origin'
+    origin_df['color'] = '[0, 200, 0, 160]'
+    
+    dest_df = df[['dest_lat', 'dest_lon']].rename(columns={'dest_lat': 'lat', 'dest_lon': 'lon'})
+    dest_df['type'] = 'Destination'
+    dest_df['color'] = '[200, 0, 0, 160]'
+    
+    points_df = pd.concat([origin_df, dest_df])
+
+    st.pydeck_chart(pdk.Deck(
+        map_style='mapbox://styles/mapbox/light-v9',
+        initial_view_state=pdk.ViewState(
+            latitude=df['origin_lat'].mean(),
+            longitude=df['origin_lon'].mean(),
+            zoom=11,
+            pitch=0,
+        ),
+        layers=[
+            pdk.Layer(
+                'ScatterplotLayer',
+                data=points_df,
+                get_position='[lon, lat]',
+                get_color='color',
+                get_radius=200,
+            ),
+        ],
+    ))
+
+    # --- Data Table ---
+    st.subheader("📄 Raw Data")
+    st.dataframe(df)
 
 # --- Page Router ---
-
 if st.session_state.current_page == 'landing':
     show_landing_page()
 elif st.session_state.current_page == 'trip_form':
     show_trip_form()
 elif st.session_state.current_page == 'success_page':
     show_success_page()
+elif st.session_state.current_page == 'admin_dashboard':
+    show_admin_dashboard()
