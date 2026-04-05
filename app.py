@@ -5,8 +5,9 @@ import folium
 import plotly.express as px
 import pydeck as pdk
 import uuid
+from geopy.distance import geodesic
 from streamlit_folium import st_folium
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 # Set page configuration
 st.set_page_config(
@@ -41,6 +42,36 @@ if 'dest_coord' not in st.session_state:
 def navigate_to(page):
     st.session_state.current_page = page
 
+def calculate_trip_stats(origin_lat, origin_lon, dest_lat, dest_lon, departure_time_str, arrival_time_str):
+    """Calculates distance in km and average speed in km/h."""
+    dist_km = geodesic((origin_lat, origin_lon), (dest_lat, dest_lon)).kilometers
+    
+    fmt = "%H:%M"
+    start = datetime.strptime(departure_time_str, fmt)
+    end = datetime.strptime(arrival_time_str, fmt)
+    
+    # Simple hour calculation
+    duration_hrs = (end - start).total_seconds() / 3600.0
+    speed_kmh = dist_km / duration_hrs if duration_hrs > 0 else 0
+    
+    return round(dist_km, 2), round(speed_kmh, 1)
+
+def check_overlap(new_departure_str, new_arrival_str, existing_trips):
+    """Checks if a new trip overlaps with any existing trips in the diary."""
+    fmt = "%H:%M"
+    new_start = datetime.strptime(new_departure_str, fmt).time()
+    new_end = datetime.strptime(new_arrival_str, fmt).time()
+    
+    for trip in existing_trips:
+        trip_start = datetime.strptime(trip['departure_time'], fmt).time()
+        trip_end = datetime.strptime(trip['arrival_time'], fmt).time()
+        
+        # Standard time overlap check
+        if (trip_start < new_end and new_start < trip_end):
+            return True, trip
+            
+    return False, None
+
 def save_responses(trips, demographics):
     """Saves multiple trips with demographic data to a local CSV file."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -72,6 +103,7 @@ def load_data():
         'origin_name', 'origin_lat', 'origin_lon', 
         'dest_name', 'dest_lat', 'dest_lon', 
         'departure_time', 'arrival_time', 'mode', 'purpose',
+        'distance_km', 'speed_kmh',
         'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp'
     ]
     if os.path.isfile(CSV_FILE):
@@ -144,8 +176,15 @@ def show_trip_diary():
             mode_label = trip.get('mode') or "Unknown Mode"
             
             with st.expander(f"Trip {i+1}: {origin_label} ➔ {dest_label} ({mode_label})"):
-                st.write(f"**From:** {trip.get('departure_time', '??')} | **To:** {trip.get('arrival_time', '??')}")
-                st.write(f"**Purpose:** {trip.get('purpose', 'Unknown')}")
+                col_t1, col_t2 = st.columns(2)
+                with col_t1:
+                    st.write(f"**From:** {trip.get('departure_time', '??')} | **To:** {trip.get('arrival_time', '??')}")
+                    st.write(f"**Purpose:** {trip.get('purpose', 'Unknown')}")
+                with col_t2:
+                    st.write(f"**Distance:** {trip.get('distance_km', 0)} km")
+                    speed = trip.get('speed_kmh', 0)
+                    st.write(f"**Avg Speed:** {speed} km/h")
+                    
                 if st.button(f"Remove Trip {i+1}", key=f"remove_{i}"):
                     st.session_state.trips.pop(i)
                     st.rerun()
@@ -227,28 +266,59 @@ def show_trip_form():
         submitted = st.form_submit_button("Add Trip to Diary", type="primary")
 
     if submitted:
+        dep_str = departure_time.strftime("%H:%M")
+        arr_str = arrival_time.strftime("%H:%M")
+        
+        # 1. Coordinate Validation
         if not st.session_state.origin_coord or not st.session_state.dest_coord:
             st.error("❌ Please select both Origin and Destination on the map.")
+        
+        # 2. Time Logic Validation
         elif arrival_time <= departure_time:
             st.error("❌ Arrival time must be after the departure time.")
+            
+        # 3. Overlap Validation
         else:
-            trip_entry = {
-                "origin_name": origin_name,
-                "origin_lat": st.session_state.origin_coord[0],
-                "origin_lon": st.session_state.origin_coord[1],
-                "dest_name": destination_name,
-                "dest_lat": st.session_state.dest_coord[0],
-                "dest_lon": st.session_state.dest_coord[1],
-                "departure_time": departure_time.strftime("%H:%M"),
-                "arrival_time": arrival_time.strftime("%H:%M"),
-                "mode": travel_mode,
-                "purpose": trip_purpose
-            }
-            st.session_state.trips.append(trip_entry)
-            st.session_state.origin_coord = None
-            st.session_state.dest_coord = None
-            navigate_to('trip_diary')
-            st.rerun()
+            is_overlap, overlapping_trip = check_overlap(dep_str, arr_str, st.session_state.trips)
+            if is_overlap:
+                st.error(f"❌ This trip overlaps with an existing entry ({overlapping_trip['departure_time']} - {overlapping_trip['arrival_time']}).")
+            else:
+                # 4. Speed Validation
+                dist_km, speed_kmh = calculate_trip_stats(
+                    st.session_state.origin_coord[0], st.session_state.origin_coord[1],
+                    st.session_state.dest_coord[0], st.session_state.dest_coord[1],
+                    dep_str, arr_str
+                )
+                
+                # Basic speed thresholds (km/h)
+                unrealistic = False
+                if travel_mode == "Walk" and speed_kmh > 15: unrealistic = True
+                if travel_mode == "Bicycle" and speed_kmh > 50: unrealistic = True
+                if travel_mode in ["Car (Driver)", "Car (Passenger)"] and speed_kmh > 180: unrealistic = True
+                
+                if unrealistic:
+                    st.warning(f"⚠️ The calculated speed ({speed_kmh} km/h) seems unrealistic for {travel_mode}. Please check your times and locations.")
+                
+                # Proceed to add
+                trip_entry = {
+                    "origin_name": origin_name,
+                    "origin_lat": st.session_state.origin_coord[0],
+                    "origin_lon": st.session_state.origin_coord[1],
+                    "dest_name": destination_name,
+                    "dest_lat": st.session_state.dest_coord[0],
+                    "dest_lon": st.session_state.dest_coord[1],
+                    "departure_time": dep_str,
+                    "arrival_time": arr_str,
+                    "mode": travel_mode,
+                    "purpose": trip_purpose,
+                    "distance_km": dist_km,
+                    "speed_kmh": speed_kmh
+                }
+                st.session_state.trips.append(trip_entry)
+                st.session_state.origin_coord = None
+                st.session_state.dest_coord = None
+                navigate_to('trip_diary')
+                st.rerun()
 
     if st.button("Cancel - Back to Diary"):
         navigate_to('trip_diary')
