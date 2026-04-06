@@ -36,7 +36,9 @@ def load_data():
         'dest_name', 'dest_lat', 'dest_lon', 'dest_stop_id',
         'departure_time', 'arrival_time', 'mode', 'purpose',
         'distance_km', 'speed_kmh', 'route_polyline',
-        'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp'
+        'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp',
+        'household_size', 'household_income', 'number_of_cars', 'home_lat', 'home_lon', 'home_addr',
+        'driving_license', 'persons_json'
     ]
     if os.path.isfile(CSV_FILE):
         df = pd.read_csv(CSV_FILE)

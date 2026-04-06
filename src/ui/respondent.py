@@ -2,6 +2,7 @@ import streamlit as st
 import uuid
 import folium
 import polyline
+import json
 from datetime import datetime, time
 from streamlit_folium import st_folium
 
@@ -34,18 +35,103 @@ def show_demographics_form():
     st.title(t("about_you_title"))
     st.write(t("about_you_desc"))
     
+    if 'demographic_persons' not in st.session_state:
+        st.session_state.demographic_persons = [{
+            "age_group": "25-44",
+            "gender": "Woman",
+            "occupation": "Employed",
+            "driving_license": "Yes"
+        }]
+    
+    if 'home_coord' not in st.session_state:
+        st.session_state.home_coord = None
+    if 'home_addr' not in st.session_state:
+        st.session_state.home_addr = ""
+
     with st.form("demographics_form"):
-        age_group = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"])
-        gender = st.selectbox(t("gender"), ["Woman", "Man", "Non-binary", "Prefer not to say"])
-        occupation = st.selectbox(t("occupation"), ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"])
+        # --- Household Section ---
+        st.subheader(t("household_section"))
+        col_h1, col_h2 = st.columns(2)
+        with col_h1:
+            h_size = st.number_input(t("household_size"), min_value=1, max_value=20, value=1)
+            h_cars = st.number_input(t("number_of_cars"), min_value=0, max_value=10, value=1)
+        with col_h2:
+            h_income = st.selectbox(t("household_income"), [
+                "Under €20,000", "€20,000 - €40,000", "€40,000 - €60,000", 
+                "€60,000 - €100,000", "Over €100,000", "Prefer not to say"
+            ])
         
+        # --- Home Location ---
+        st.subheader(t("home_location"))
+        home_search = st.text_input("Home Address Search", placeholder="e.g., 10 Rue de Rivoli, Paris")
+        # In a real app, we'd have a 'Find' button here, but within a form, 
+        # it's tricky. Let's provide instructions for mapping.
+        st.info("Please use the map below to confirm your home location after filling this form if needed, or search above.")
+
+        # --- Persons Section ---
+        st.subheader(t("persons_section"))
+        
+        updated_persons = []
+        for i in range(len(st.session_state.demographic_persons)):
+            p = st.session_state.demographic_persons[i]
+            is_resp = t("is_respondent") if i == 0 else ""
+            st.markdown(f"**{t('person_number', number=i+1)} {is_resp}**")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                age = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"], index=1, key=f"p_age_{i}")
+                gender = st.selectbox(t("gender"), ["Woman", "Man", "Non-binary", "Prefer not to say"], key=f"p_gen_{i}")
+            with c2:
+                occ = st.selectbox(t("occupation"), ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"], key=f"p_occ_{i}")
+                license = st.selectbox(t("driving_license"), ["Yes", "No"], key=f"p_lic_{i}")
+            
+            updated_persons.append({
+                "age_group": age,
+                "gender": gender,
+                "occupation": occ,
+                "driving_license": license
+            })
+            if i < len(st.session_state.demographic_persons) - 1:
+                st.divider()
+
         submitted = st.form_submit_button(t("cont_to_diary"), type="primary", use_container_width=True)
         
+    # Buttons to add/remove persons (outside the form to avoid submission)
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        if st.button(t("add_person"), use_container_width=True):
+            st.session_state.demographic_persons.append({
+                "age_group": "25-44", "gender": "Woman", "occupation": "Employed", "driving_license": "Yes"
+            })
+            st.rerun()
+    with col_p2:
+        if len(st.session_state.demographic_persons) > 1:
+            if st.button(t("remove_person"), use_container_width=True):
+                st.session_state.demographic_persons.pop()
+                st.rerun()
+
     if submitted:
+        # Geocode home address if provided and not already set
+        if home_search and not st.session_state.home_coord:
+            coords = geocode_address(home_search)
+            if coords:
+                st.session_state.home_coord = coords
+                st.session_state.home_addr = home_search
+
+        # Save to demographics
+        resp = updated_persons[0]
         st.session_state.demographics = {
-            "age_group": age_group,
-            "gender": gender,
-            "occupation": occupation
+            "household_size": h_size,
+            "household_income": h_income,
+            "number_of_cars": h_cars,
+            "home_lat": st.session_state.home_coord[0] if st.session_state.home_coord else None,
+            "home_lon": st.session_state.home_coord[1] if st.session_state.home_coord else None,
+            "home_addr": st.session_state.home_addr,
+            "age_group": resp["age_group"],
+            "gender": resp["gender"],
+            "occupation": resp["occupation"],
+            "driving_license": resp["driving_license"],
+            "persons_json": json.dumps(updated_persons)
         }
         navigate_to('trip_diary')
         st.rerun()
