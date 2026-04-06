@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import json
 from datetime import datetime
-from src.config import CSV_FILE
+from .config import CSV_FILE
 
 def save_responses(trips, demographics, session_id):
     """Saves multiple trips with demographic data to a local CSV file."""

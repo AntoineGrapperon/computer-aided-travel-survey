@@ -1,4 +1,4 @@
-from src.config import ADMIN_PASSWORD
+from .config import ADMIN_PASSWORD
 
 def check_password(password):
     """Verifies the administrative password."""

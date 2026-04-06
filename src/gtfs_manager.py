@@ -1,7 +1,7 @@
 import pandas as pd
 import zipfile
 import os
-from src.config import GTFS_STOPS_FILE
+from .config import GTFS_STOPS_FILE
 
 def process_gtfs_zip(uploaded_file):
     """Extracts stops from a GTFS zip file and saves them to a local CSV."""

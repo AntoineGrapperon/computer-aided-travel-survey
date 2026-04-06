@@ -5,8 +5,13 @@ import plotly.express as px
 import pydeck as pdk
 import uuid
 import polyline
+import sys
+import os
 from streamlit_folium import st_folium
 from datetime import datetime, time
+
+# Add the project root to sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Custom Modules
 from src.config import DEFAULT_LOCATION

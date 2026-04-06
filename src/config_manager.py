@@ -1,6 +1,6 @@
 import json
 import os
-from src.config import SURVEY_SETTINGS_FILE
+from .config import SURVEY_SETTINGS_FILE
 
 DEFAULT_MODES = ["Walk", "Bicycle", "Car (Driver)", "Car (Passenger)", "Public Transit", "Motorcycle", "Other"]
 DEFAULT_PURPOSES = ["Work", "Education", "Shopping", "Social/Leisure", "Personal Business", "Other"]
