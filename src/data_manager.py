@@ -32,8 +32,8 @@ def save_responses(trips, demographics, session_id):
 def load_data():
     """Loads survey data from CSV and ensures all expected columns exist."""
     expected_columns = [
-        'origin_name', 'origin_lat', 'origin_lon', 
-        'dest_name', 'dest_lat', 'dest_lon', 
+        'origin_name', 'origin_lat', 'origin_lon', 'origin_stop_id',
+        'dest_name', 'dest_lat', 'dest_lon', 'dest_stop_id',
         'departure_time', 'arrival_time', 'mode', 'purpose',
         'distance_km', 'speed_kmh', 'route_polyline',
         'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp'

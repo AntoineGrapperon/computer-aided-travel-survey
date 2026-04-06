@@ -14,6 +14,7 @@ from src.i18n import t
 from src.auth import check_password
 from src.data_manager import save_responses, load_data, convert_to_geojson, check_overlap
 from src.geo_utils import geocode_address, get_osrm_route, calculate_trip_stats
+from src.gtfs_manager import process_gtfs_zip, load_transit_stops
 
 # Set page configuration
 st.set_page_config(
@@ -43,6 +44,12 @@ if 'origin_coord' not in st.session_state:
 
 if 'dest_coord' not in st.session_state:
     st.session_state.dest_coord = None
+
+if 'origin_stop_id' not in st.session_state:
+    st.session_state.origin_stop_id = None
+
+if 'dest_stop_id' not in st.session_state:
+    st.session_state.dest_stop_id = None
 
 if 'lang' not in st.session_state:
     st.session_state.lang = 'en'
@@ -220,6 +227,31 @@ def show_trip_form():
     # Use a slightly smaller map for mobile compatibility
     m = folium.Map(location=DEFAULT_LOCATION, zoom_start=12)
     
+    # --- GTFS Integration ---
+    if travel_mode == "Public Transit":
+        stops_df = load_transit_stops()
+        if not stops_df.empty:
+            # Add stops to map as small circles/markers
+            for _, stop in stops_df.iterrows():
+                # Check if this stop is already selected as origin or destination
+                is_selected = False
+                color = "blue"
+                if st.session_state.origin_stop_id == stop['stop_id']:
+                    is_selected = True
+                    color = "green"
+                elif st.session_state.dest_stop_id == stop['stop_id']:
+                    is_selected = True
+                    color = "red"
+                
+                folium.CircleMarker(
+                    location=[stop['stop_lat'], stop['stop_lon']],
+                    radius=5,
+                    popup=f"Stop: {stop['stop_name']} ({stop['stop_id']})",
+                    color=color,
+                    fill=True,
+                    fill_opacity=0.7
+                ).add_to(m)
+
     route_coords = None
     osrm_dist = None
     route_poly = None
@@ -230,7 +262,7 @@ def show_trip_form():
             route_coords, osrm_dist, route_poly = get_osrm_route(
                 st.session_state.origin_coord, 
                 st.session_state.dest_coord, 
-                "Car" 
+                travel_mode # Now uses actual travel mode
             )
             if route_coords:
                 folium.PolyLine(route_coords, color="blue", weight=5, opacity=0.7).add_to(m)
@@ -244,16 +276,42 @@ def show_trip_form():
 
     output = st_folium(m, width="100%", height=300) # Reduced height for mobile
 
+    # --- Click & Map Logic ---
+    # Handle marker placement or stop selection
     if output.get("last_clicked"):
         lat, lng = output["last_clicked"]["lat"], output["last_clicked"]["lng"]
+        
+        # Check if user clicked near a stop
+        picked_stop = None
+        if travel_mode == "Public Transit":
+            stops_df = load_transit_stops()
+            if not stops_df.empty:
+                # Simple distance threshold for "snapping" to stop
+                stops_df['dist'] = ((stops_df['stop_lat'] - lat)**2 + (stops_df['stop_lon'] - lng)**2)**0.5
+                closest = stops_df.nsmallest(1, 'dist').iloc[0]
+                if closest['dist'] < 0.001: # Approx 100m
+                    picked_stop = closest
+
         if selection_mode == "Origin":
-            if st.session_state.origin_coord != [lat, lng]:
-                st.session_state.origin_coord = [lat, lng]
-                st.rerun()
+            if picked_stop is not None:
+                st.session_state.origin_coord = [picked_stop['stop_lat'], picked_stop['stop_lon']]
+                st.session_state.origin_stop_id = picked_stop['stop_id']
+                # Pre-fill origin name with stop name
+                # (Need to handle this carefully with st.text_input)
+            else:
+                if st.session_state.origin_coord != [lat, lng]:
+                    st.session_state.origin_coord = [lat, lng]
+                    st.session_state.origin_stop_id = None
+            st.rerun()
         else:
-            if st.session_state.dest_coord != [lat, lng]:
-                st.session_state.dest_coord = [lat, lng]
-                st.rerun()
+            if picked_stop is not None:
+                st.session_state.dest_coord = [picked_stop['stop_lat'], picked_stop['stop_lon']]
+                st.session_state.dest_stop_id = picked_stop['stop_id']
+            else:
+                if st.session_state.dest_coord != [lat, lng]:
+                    st.session_state.dest_coord = [lat, lng]
+                    st.session_state.dest_stop_id = None
+            st.rerun()
 
     col_o, col_d = st.columns(2)
     with col_o:
@@ -322,9 +380,11 @@ def show_trip_form():
                     "origin_name": origin_name,
                     "origin_lat": st.session_state.origin_coord[0],
                     "origin_lon": st.session_state.origin_coord[1],
+                    "origin_stop_id": st.session_state.origin_stop_id,
                     "dest_name": destination_name,
                     "dest_lat": st.session_state.dest_coord[0],
                     "dest_lon": st.session_state.dest_coord[1],
+                    "dest_stop_id": st.session_state.dest_stop_id,
                     "departure_time": dep_str,
                     "arrival_time": arr_str,
                     "mode": travel_mode,
@@ -336,6 +396,8 @@ def show_trip_form():
                 st.session_state.trips.append(trip_entry)
                 st.session_state.origin_coord = None
                 st.session_state.dest_coord = None
+                st.session_state.origin_stop_id = None
+                st.session_state.dest_stop_id = None
                 navigate_to('trip_diary')
                 st.rerun()
 
@@ -482,6 +544,19 @@ def show_admin_dashboard():
         mime='application/json',
         use_container_width=True
     )
+
+    # --- GTFS Setup ---
+    st.divider()
+    st.subheader("🚌 GTFS Network Setup")
+    with st.expander("Upload Transit Data (GTFS)"):
+        st.write("Upload a city's GTFS .zip file to enable transit stop selection for respondents.")
+        gtfs_file = st.file_uploader("Select GTFS Zip", type="zip")
+        if gtfs_file:
+            success, message = process_gtfs_zip(gtfs_file)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
 
 # --- Page Router ---
 if st.session_state.current_page == 'landing':
