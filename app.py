@@ -15,6 +15,7 @@ from src.auth import check_password
 from src.data_manager import save_responses, load_data, convert_to_geojson, check_overlap
 from src.geo_utils import geocode_address, get_osrm_route, calculate_trip_stats
 from src.gtfs_manager import process_gtfs_zip, load_transit_stops
+from src.config_manager import load_survey_settings, save_survey_settings
 
 # Set page configuration
 st.set_page_config(
@@ -321,6 +322,9 @@ def show_trip_form():
         if st.session_state.dest_coord: st.success(t("dest_set"))
         else: st.info(t("click_dest"))
 
+    # Load custom settings
+    mode_options, purpose_options = load_survey_settings()
+
     # --- Details Section ---
     st.subheader(t("trip_details"))
     with st.form("trip_details_form"):
@@ -333,10 +337,7 @@ def show_trip_form():
         with col_time2:
             arrival_time = st.time_input(t("arr_time"), value=time(8, 30))
 
-        mode_options = ["Walk", "Bicycle", "Car (Driver)", "Car (Passenger)", "Public Transit", "Motorcycle", "Other"]
         travel_mode = st.selectbox(t("how_travel"), options=mode_options)
-
-        purpose_options = ["Work", "Education", "Shopping", "Social/Leisure", "Personal Business", "Other"]
         trip_purpose = st.selectbox(t("trip_purpose"), options=purpose_options)
 
         submitted = st.form_submit_button(t("add_to_diary"), type="primary", use_container_width=True)
@@ -522,6 +523,34 @@ def show_admin_dashboard():
             ),
         ],
     ))
+
+    # --- Survey Configuration ---
+    st.divider()
+    st.subheader("⚙️ Survey Configuration")
+    with st.expander("Manage Travel Modes & Trip Purposes"):
+        curr_modes, curr_purposes = load_survey_settings()
+        
+        st.write("Edit the lists below (one item per line).")
+        
+        col_cfg1, col_cfg2 = st.columns(2)
+        with col_cfg1:
+            new_modes_text = st.text_area("Travel Modes", value="\n".join(curr_modes), height=200)
+        with col_cfg2:
+            new_purposes_text = st.text_area("Trip Purposes", value="\n".join(curr_purposes), height=200)
+            
+        if st.button("Save Survey Configuration", type="primary", use_container_width=True):
+            new_modes = [m.strip() for m in new_modes_text.split("\n") if m.strip()]
+            new_purposes = [p.strip() for p in new_purposes_text.split("\n") if p.strip()]
+            
+            if not new_modes or not new_purposes:
+                st.error("Both lists must contain at least one item.")
+            else:
+                success, msg = save_survey_settings(new_modes, new_purposes)
+                if success:
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
 
     st.subheader(t("raw_data"))
     st.dataframe(df)
