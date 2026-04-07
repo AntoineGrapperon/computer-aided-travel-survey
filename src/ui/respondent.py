@@ -35,11 +35,14 @@ def show_demographics_form():
     st.title(t("about_you_title"))
     st.write(t("about_you_desc"))
     
+    # Load survey settings
+    settings = load_survey_settings()
+    
     if 'demographic_persons' not in st.session_state:
         st.session_state.demographic_persons = [{
-            "age_group": "25-44",
-            "gender": "Woman",
-            "occupation": "Employed",
+            "age_group": settings["age_groups"][min(2, len(settings["age_groups"])-1)],
+            "gender": settings["genders"][0],
+            "occupation": settings["occupations"][min(1, len(settings["occupations"])-1)],
             "driving_license": "Yes"
         }]
     
@@ -59,7 +62,10 @@ def show_demographics_form():
             if h_size > current_p_count:
                 for _ in range(h_size - current_p_count):
                     st.session_state.demographic_persons.append({
-                        "age_group": "25-44", "gender": "Woman", "occupation": "Employed", "driving_license": "Yes"
+                        "age_group": settings["age_groups"][min(2, len(settings["age_groups"])-1)], 
+                        "gender": settings["genders"][0], 
+                        "occupation": settings["occupations"][min(1, len(settings["occupations"])-1)], 
+                        "driving_license": "Yes"
                     })
             elif h_size < current_p_count:
                 st.session_state.demographic_persons = st.session_state.demographic_persons[:h_size]
@@ -71,10 +77,7 @@ def show_demographics_form():
         # --- Income & Home ---
         col_i1, col_i2 = st.columns(2)
         with col_i1:
-            h_income = st.selectbox(t("household_income"), [
-                "Under €20,000", "€20,000 - €40,000", "€40,000 - €60,000", 
-                "€60,000 - €100,000", "Over €100,000", "Prefer not to say"
-            ])
+            h_income = st.selectbox(t("household_income"), settings["income_brackets"])
         with col_i2:
             home_search = st.text_input("Home Address Search", placeholder="e.g., 10 Rue de Rivoli, Paris")
 
@@ -89,10 +92,17 @@ def show_demographics_form():
             
             c1, c2 = st.columns(2)
             with c1:
-                age = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"], index=2, key=f"p_age_{i}")
-                gender = st.selectbox(t("gender"), ["Woman", "Man", "Non-binary", "Prefer not to say"], key=f"p_gen_{i}")
+                # Use current value if possible, else index 2
+                age_idx = 0
+                if p["age_group"] in settings["age_groups"]:
+                    age_idx = settings["age_groups"].index(p["age_group"])
+                elif len(settings["age_groups"]) > 2:
+                    age_idx = 2
+                
+                age = st.selectbox(t("age_group"), settings["age_groups"], index=age_idx, key=f"p_age_{i}")
+                gender = st.selectbox(t("gender"), settings["genders"], key=f"p_gen_{i}")
             with c2:
-                occ = st.selectbox(t("occupation"), ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"], key=f"p_occ_{i}")
+                occ = st.selectbox(t("occupation"), settings["occupations"], key=f"p_occ_{i}")
                 license = st.selectbox(t("driving_license"), ["Yes", "No"], key=f"p_lic_{i}")
             
             updated_persons.append({
@@ -177,11 +187,11 @@ def show_trip_form():
     st.write(t("record_trip_desc"))
 
     # Load custom settings
-    mode_options, purpose_options = load_survey_settings()
+    settings = load_survey_settings()
+    mode_options = settings["modes"]
+    purpose_options = settings["purposes"]
 
-    # Define travel_mode early to avoid NameError (could be improved with session state)
-    # We'll use the current value from the selectbox later, but we need it for the map logic.
-    # To avoid NameError on first load, we initialize it.
+    # Define travel_mode early to avoid NameError
     travel_mode = st.session_state.get("last_selected_mode", mode_options[0])
 
     # --- Mapping Section ---

@@ -141,25 +141,38 @@ def show_admin_dashboard():
     # --- Survey Configuration ---
     st.divider()
     st.subheader("⚙️ Survey Configuration")
-    with st.expander("Manage Travel Modes & Trip Purposes"):
-        curr_modes, curr_purposes = load_survey_settings()
+    with st.expander("Manage Survey Categories (Modes, Purposes, Demographics)"):
+        settings = load_survey_settings()
         
         st.write("Edit the lists below (one item per line).")
         
         col_cfg1, col_cfg2 = st.columns(2)
         with col_cfg1:
-            new_modes_text = st.text_area("Travel Modes", value="\n".join(curr_modes), height=200)
+            new_modes_text = st.text_area("Travel Modes", value="\n".join(settings["modes"]), height=150)
+            new_age_groups_text = st.text_area("Age Groups", value="\n".join(settings["age_groups"]), height=150)
+            new_occupations_text = st.text_area("Occupations / Work Status", value="\n".join(settings["occupations"]), height=150)
         with col_cfg2:
-            new_purposes_text = st.text_area("Trip Purposes", value="\n".join(curr_purposes), height=200)
+            new_purposes_text = st.text_area("Trip Purposes", value="\n".join(settings["purposes"]), height=150)
+            new_genders_text = st.text_area("Gender Options", value="\n".join(settings["genders"]), height=150)
+            new_incomes_text = st.text_area("Household Income Brackets", value="\n".join(settings["income_brackets"]), height=150)
             
         if st.button("Save Survey Configuration", type="primary", use_container_width=True):
-            new_modes = [m.strip() for m in new_modes_text.split("\n") if m.strip()]
-            new_purposes = [p.strip() for p in new_purposes_text.split("\n") if p.strip()]
+            def clean_list(text):
+                return [x.strip() for x in text.split("\n") if x.strip()]
             
-            if not new_modes or not new_purposes:
-                st.error("Both lists must contain at least one item.")
+            new_settings = {
+                "modes": clean_list(new_modes_text),
+                "purposes": clean_list(new_purposes_text),
+                "age_groups": clean_list(new_age_groups_text),
+                "genders": clean_list(new_genders_text),
+                "occupations": clean_list(new_occupations_text),
+                "income_brackets": clean_list(new_incomes_text)
+            }
+            
+            if any(not v for v in new_settings.values()):
+                st.error("All category lists must contain at least one item.")
             else:
-                success, msg = save_survey_settings(new_modes, new_purposes)
+                success, msg = save_survey_settings(new_settings)
                 if success:
                     st.success(msg)
                     st.rerun()
