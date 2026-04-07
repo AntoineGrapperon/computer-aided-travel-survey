@@ -48,25 +48,35 @@ def show_demographics_form():
     if 'home_addr' not in st.session_state:
         st.session_state.home_addr = ""
 
-    with st.form("demographics_form"):
-        # --- Household Section ---
-        st.subheader(t("household_section"))
+    with st.expander(t("household_section"), expanded=True):
         col_h1, col_h2 = st.columns(2)
         with col_h1:
-            h_size = st.number_input(t("household_size"), min_value=1, max_value=20, value=1)
-            h_cars = st.number_input(t("number_of_cars"), min_value=0, max_value=10, value=1)
+            # Household size drives the number of persons
+            current_p_count = len(st.session_state.demographic_persons)
+            h_size = st.number_input(t("household_size"), min_value=1, max_value=20, value=current_p_count, key="h_size_input")
+            
+            # Sync demographic_persons with h_size
+            if h_size > current_p_count:
+                for _ in range(h_size - current_p_count):
+                    st.session_state.demographic_persons.append({
+                        "age_group": "25-44", "gender": "Woman", "occupation": "Employed", "driving_license": "Yes"
+                    })
+            elif h_size < current_p_count:
+                st.session_state.demographic_persons = st.session_state.demographic_persons[:h_size]
+        
         with col_h2:
+            h_cars = st.number_input(t("number_of_cars"), min_value=0, max_value=10, value=1)
+
+    with st.form("demographics_form"):
+        # --- Income & Home ---
+        col_i1, col_i2 = st.columns(2)
+        with col_i1:
             h_income = st.selectbox(t("household_income"), [
                 "Under €20,000", "€20,000 - €40,000", "€40,000 - €60,000", 
                 "€60,000 - €100,000", "Over €100,000", "Prefer not to say"
             ])
-        
-        # --- Home Location ---
-        st.subheader(t("home_location"))
-        home_search = st.text_input("Home Address Search", placeholder="e.g., 10 Rue de Rivoli, Paris")
-        # In a real app, we'd have a 'Find' button here, but within a form, 
-        # it's tricky. Let's provide instructions for mapping.
-        st.info("Please use the map below to confirm your home location after filling this form if needed, or search above.")
+        with col_i2:
+            home_search = st.text_input("Home Address Search", placeholder="e.g., 10 Rue de Rivoli, Paris")
 
         # --- Persons Section ---
         st.subheader(t("persons_section"))
@@ -79,7 +89,7 @@ def show_demographics_form():
             
             c1, c2 = st.columns(2)
             with c1:
-                age = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"], index=1, key=f"p_age_{i}")
+                age = st.selectbox(t("age_group"), ["Under 18", "18-24", "25-44", "45-64", "65+"], index=2, key=f"p_age_{i}")
                 gender = st.selectbox(t("gender"), ["Woman", "Man", "Non-binary", "Prefer not to say"], key=f"p_gen_{i}")
             with c2:
                 occ = st.selectbox(t("occupation"), ["Student", "Employed", "Self-employed", "Retired", "Unemployed", "Other"], key=f"p_occ_{i}")
@@ -95,20 +105,6 @@ def show_demographics_form():
                 st.divider()
 
         submitted = st.form_submit_button(t("cont_to_diary"), type="primary", use_container_width=True)
-        
-    # Buttons to add/remove persons (outside the form to avoid submission)
-    col_p1, col_p2 = st.columns(2)
-    with col_p1:
-        if st.button(t("add_person"), use_container_width=True):
-            st.session_state.demographic_persons.append({
-                "age_group": "25-44", "gender": "Woman", "occupation": "Employed", "driving_license": "Yes"
-            })
-            st.rerun()
-    with col_p2:
-        if len(st.session_state.demographic_persons) > 1:
-            if st.button(t("remove_person"), use_container_width=True):
-                st.session_state.demographic_persons.pop()
-                st.rerun()
 
     if submitted:
         # Geocode home address if provided and not already set
