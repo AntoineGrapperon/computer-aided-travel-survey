@@ -39,6 +39,9 @@ if 'session_id' not in st.session_state:
 if 'trips' not in st.session_state:
     st.session_state.trips = []
 
+if 'current_person_idx' not in st.session_state:
+    st.session_state.current_person_idx = 0
+
 if 'demographics' not in st.session_state:
     st.session_state.demographics = {}
 

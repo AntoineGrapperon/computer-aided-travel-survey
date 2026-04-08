@@ -4,26 +4,53 @@ import json
 from datetime import datetime
 from .config import CSV_FILE
 
-def save_responses(trips, demographics, session_id):
-    """Saves multiple trips with demographic data to a local CSV file."""
+def save_responses(trips_per_person, demographics, session_id):
+    """
+    Saves trips for multiple persons with their specific demographics.
+    trips_per_person: list of lists of trips.
+    demographics: dict containing household info and 'persons_json'.
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    persons = json.loads(demographics.get('persons_json', '[]'))
     
     rows = []
-    for trip in trips:
-        row = trip.copy()
-        row.update(demographics)
-        row['session_id'] = session_id
-        row['submission_timestamp'] = timestamp
-        rows.append(row)
+    for p_idx, trips in enumerate(trips_per_person):
+        if p_idx < len(persons):
+            p_demog = persons[p_idx]
+            for trip in trips:
+                row = trip.copy()
+                # Household info
+                row['household_size'] = demographics.get('household_size')
+                row['household_income'] = demographics.get('household_income')
+                row['number_of_cars'] = demographics.get('number_of_cars')
+                row['home_lat'] = demographics.get('home_lat')
+                row['home_lon'] = demographics.get('home_lon')
+                row['home_addr'] = demographics.get('home_addr')
+                
+                # Person info
+                row['person_idx'] = p_idx
+                row['age_group'] = p_demog.get('age_group')
+                row['gender'] = p_demog.get('gender')
+                row['occupation'] = p_demog.get('occupation')
+                row['driving_license'] = p_demog.get('driving_license')
+                
+                row['session_id'] = session_id
+                row['submission_timestamp'] = timestamp
+                rows.append(row)
     
+    if not rows:
+        return
+        
     new_df = pd.DataFrame(rows)
     
     if not os.path.isfile(CSV_FILE):
         new_df.to_csv(CSV_FILE, index=False)
     else:
         existing_df = pd.read_csv(CSV_FILE, nrows=0)
-        if set(new_df.columns) != set(existing_df.columns):
+        # Ensure 'person_idx' exists in existing file or handle merge
+        if 'person_idx' not in existing_df.columns:
             full_df = pd.read_csv(CSV_FILE)
+            full_df['person_idx'] = 0 # Default for old data
             combined = pd.concat([full_df, new_df], ignore_index=True)
             combined.to_csv(CSV_FILE, index=False)
         else:
@@ -38,7 +65,7 @@ def load_data():
         'distance_km', 'speed_kmh', 'route_polyline',
         'age_group', 'gender', 'occupation', 'session_id', 'submission_timestamp',
         'household_size', 'household_income', 'number_of_cars', 'home_lat', 'home_lon', 'home_addr',
-        'driving_license', 'persons_json'
+        'driving_license', 'persons_json', 'person_idx'
     ]
     if os.path.isfile(CSV_FILE):
         df = pd.read_csv(CSV_FILE)

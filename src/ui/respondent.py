@@ -133,22 +133,27 @@ def show_demographics_form():
             "home_lat": st.session_state.home_coord[0] if st.session_state.home_coord else None,
             "home_lon": st.session_state.home_coord[1] if st.session_state.home_coord else None,
             "home_addr": st.session_state.home_addr,
-            "age_group": resp["age_group"],
-            "gender": resp["gender"],
-            "occupation": resp["occupation"],
-            "driving_license": resp["driving_license"],
             "persons_json": json.dumps(updated_persons)
         }
+        # Initialize one empty trip list per person
+        st.session_state.trips = [[] for _ in range(h_size)]
+        st.session_state.current_person_idx = 0
         navigate_to('trip_diary')
         st.rerun()
 
 def show_trip_diary():
-    st.title(t("diary_title"))
+    person_idx = st.session_state.get('current_person_idx', 0)
+    total_persons = len(st.session_state.trips)
+    
+    st.title(f"{t('diary_title')} ({person_idx + 1} / {total_persons})")
+    st.subheader(f"{t('person_number', number=person_idx+1)}")
     st.write(t("diary_desc"))
     
-    if st.session_state.trips:
+    current_trips = st.session_state.trips[person_idx]
+    
+    if current_trips:
         st.subheader(t("logged_trips"))
-        for i, trip in enumerate(st.session_state.trips):
+        for i, trip in enumerate(current_trips):
             origin_label = trip.get('origin_name') or "Unknown Origin"
             dest_label = trip.get('destination_name') or "Unknown Destination"
             mode_label = trip.get('mode') or "Unknown Mode"
@@ -163,7 +168,7 @@ def show_trip_diary():
                     st.write(f"**Speed:** {trip.get('speed_kmh', 0)} km/h")
                     
                 if st.button(f"🗑️ Remove", key=f"remove_{i}", use_container_width=True):
-                    st.session_state.trips.pop(i)
+                    st.session_state.trips[person_idx].pop(i)
                     st.rerun()
     else:
         st.info(t("no_trips"))
@@ -173,14 +178,26 @@ def show_trip_diary():
         navigate_to('trip_form')
         st.rerun()
             
-    if st.session_state.trips:
-        if st.button(t("finish_submit"), type="secondary", use_container_width=True):
-            try:
-                save_responses(st.session_state.trips, st.session_state.demographics, st.session_state.session_id)
-                navigate_to('success_page')
+    col_nav1, col_nav2 = st.columns(2)
+    with col_nav1:
+        if person_idx > 0:
+            if st.button(t("prev_person"), use_container_width=True):
+                st.session_state.current_person_idx -= 1
                 st.rerun()
-            except Exception as e:
-                st.error(f"❌ Failed to save: {e}")
+    
+    with col_nav2:
+        if person_idx < total_persons - 1:
+            if st.button(t("next_person"), type="primary", use_container_width=True):
+                st.session_state.current_person_idx += 1
+                st.rerun()
+        else:
+            if st.button(t("finish_submit"), type="secondary", use_container_width=True):
+                try:
+                    save_responses(st.session_state.trips, st.session_state.demographics, st.session_state.session_id)
+                    navigate_to('success_page')
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to save: {e}")
 
 def show_trip_form():
     st.title(t("record_trip_title"))
@@ -342,7 +359,9 @@ def show_trip_form():
         elif arrival_time <= departure_time:
             st.error("❌ " + t("arr_time") + " <= " + t("dep_time"))
         else:
-            is_overlap, overlapping_trip = check_overlap(dep_str, arr_str, st.session_state.trips)
+            person_idx = st.session_state.get('current_person_idx', 0)
+            current_trips = st.session_state.trips[person_idx]
+            is_overlap, overlapping_trip = check_overlap(dep_str, arr_str, current_trips)
             if is_overlap:
                 st.error(f"❌ Overlap: {overlapping_trip['departure_time']} - {overlapping_trip['arrival_time']}")
             else:
@@ -382,7 +401,7 @@ def show_trip_form():
                     "speed_kmh": final_speed,
                     "route_polyline": final_poly
                 }
-                st.session_state.trips.append(trip_entry)
+                st.session_state.trips[person_idx].append(trip_entry)
                 st.session_state.origin_coord = None
                 st.session_state.dest_coord = None
                 st.session_state.origin_stop_id = None
@@ -397,12 +416,15 @@ def show_trip_form():
 def show_success_page():
     st.balloons()
     st.title(t("success_thanks"))
-    st.success(t("success_saved", count=len(st.session_state.trips)))
+    
+    total_trips = sum(len(p_trips) for p_trips in st.session_state.trips)
+    st.success(t("success_saved", count=total_trips))
     
     st.write(t("success_city"))
 
     if st.button(t("new_diary"), use_container_width=True):
         st.session_state.trips = []
+        st.session_state.current_person_idx = 0
         st.session_state.demographics = {}
         st.session_state.session_id = str(uuid.uuid4())
         navigate_to('landing')
